@@ -32,17 +32,24 @@ elif selected == "記帳小管家":
     st.title("💰 雲端記帳本")
 
     # 連線函式
+    # --- 連接 Google Sheets 的函式 (自動切換版) ---
     @st.cache_resource
     def get_google_sheet():
         scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
         
-        # 嘗試從 Streamlit 的保險箱讀取資料
-        if "gcp_service_account" in st.secrets:
-            # 這是我們剛剛在網頁上設定的懶人包
+        creds = None
+        
+        # 1. 先嘗試從雲端保險箱讀取 (這是給 Streamlit Cloud 網站用的)
+        try:
             key_dict = json.loads(st.secrets["gcp_service_account"]["json_content"])
             creds = ServiceAccountCredentials.from_json_keyfile_dict(key_dict, scope)
-        else:
-            # 如果在本地電腦執行，還是可以試著讀檔案 (當作備用)
+        except:
+            # 如果上面失敗了 (代表你在自己電腦上跑)，程式會自動跳來這裡
+            # 2. 改用電腦裡的 secrets.json 檔案
+            pass
+
+        # 如果保險箱沒抓到，就用本地檔案
+        if creds is None:
             creds = ServiceAccountCredentials.from_json_keyfile_name('secrets.json', scope)
             
         client = gspread.authorize(creds)
