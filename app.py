@@ -2,7 +2,7 @@ import streamlit as st
 from streamlit_option_menu import option_menu
 import pandas as pd
 import random
-# --- 新增這兩行 ---
+import json
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
@@ -35,10 +35,17 @@ elif selected == "記帳小管家":
     @st.cache_resource
     def get_google_sheet():
         scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
-        # 讀取你的鑰匙 (確保 secrets.json 在同個資料夾)
-        creds = ServiceAccountCredentials.from_json_keyfile_name('secrets.json', scope)
+        
+        # 嘗試從 Streamlit 的保險箱讀取資料
+        if "gcp_service_account" in st.secrets:
+            # 這是我們剛剛在網頁上設定的懶人包
+            key_dict = json.loads(st.secrets["gcp_service_account"]["json_content"])
+            creds = ServiceAccountCredentials.from_json_keyfile_dict(key_dict, scope)
+        else:
+            # 如果在本地電腦執行，還是可以試著讀檔案 (當作備用)
+            creds = ServiceAccountCredentials.from_json_keyfile_name('secrets.json', scope)
+            
         client = gspread.authorize(creds)
-        # 開啟試算表 (確保你的 Google Sheet 叫這個名字)
         sheet = client.open("OurLoveMoney").sheet1
         return sheet
 
