@@ -10,51 +10,48 @@ from googleapiclient.http import MediaIoBaseUpload
 
 st.set_page_config(page_title="我們的專屬小窩", layout="wide")
 
+# ==========================================
+# 👇 請記得把這裡換成妳 Google Drive 的資料夾 ID (那串亂碼)
 FOLDER_ID = "1sr5pM4dii95MR3n4NIObXiz6pPInUee9?usp=sharing"
+# ==========================================
 
-# --- 側邊欄 (已移除願望清單) ---
+# --- 側邊欄 ---
 with st.sidebar:
     selected = option_menu(
         menu_title="功能選單",
-        # 這裡只保留 5 個功能
         options=["首頁", "今天吃什麼", "記帳小管家", "旅遊地圖", "回憶相簿"],
         icons=["house", "egg-fried", "currency-dollar", "map", "images"],
         menu_icon="heart",
         default_index=0,
     )
 
-# --- 連線函式 (最穩定的雙棲版) ---
+# --- 共用連線函式 (這裡是關鍵！必須要有 get_creds) ---
 @st.cache_resource
-def get_google_sheet_client():
+def get_creds():
     scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
     creds = None
     
-    # 1. 嘗試讀取雲端保險箱 (給 Streamlit Cloud 用)
+    # 1. 雲端保險箱
     if "gcp" in st.secrets:
         try:
             key_dict = json.loads(st.secrets["gcp"]["json_file"])
             creds = ServiceAccountCredentials.from_json_keyfile_dict(key_dict, scope)
         except Exception as e:
-            st.error(f"雲端保險箱讀取錯誤: {e}")
+            st.error(f"保險箱讀取錯誤: {e}")
     
-    # 2. 嘗試讀取本地檔案 (給電腦 Localhost 用)
+    # 2. 本地檔案
     if creds is None:
         try:
             creds = ServiceAccountCredentials.from_json_keyfile_name('secrets.json', scope)
         except:
-            pass
+            st.error("找不到鑰匙！請確認 secrets.json 或雲端 Secrets 設定正確。")
+            st.stop()
             
-    # 如果兩邊都失敗，報錯
-    if creds is None:
-        st.error("找不到鑰匙！請確認 secrets.json 在資料夾內，或是雲端 Secrets 設定正確。")
-        st.stop()
-            
-    client = gspread.authorize(creds)
-    return client
+    return creds
 
+# --- 上傳檔案到 Google Drive 的函式 ---
 def upload_image_to_drive(file_obj, filename, folder_id, creds):
     try:
-        # 建立 Drive 服務
         service = build('drive', 'v3', credentials=creds)
         
         file_metadata = {
@@ -64,27 +61,23 @@ def upload_image_to_drive(file_obj, filename, folder_id, creds):
         
         media = MediaIoBaseUpload(file_obj, mimetype=file_obj.type)
         
-        # 執行上傳
         file = service.files().create(
             body=file_metadata,
             media_body=media,
             fields='id, webViewLink'
         ).execute()
         
-        # 設定權限為公開 (這樣網頁才看得到)
         service.permissions().create(
             fileId=file.get('id'),
             body={'role': 'reader', 'type': 'anyone'}
         ).execute()
         
-        # 產生圖片直接連結
         file_id = file.get('id')
         return f"https://drive.google.com/uc?export=view&id={file_id}"
         
     except Exception as e:
         st.error(f"上傳失敗: {e}")
         return None
-
 
 # --- 頁面內容 ---
 
@@ -101,16 +94,14 @@ elif selected == "今天吃什麼":
 
 elif selected == "記帳小管家":
     st.title("💰 雲端記帳本")
-    
-    # 連線
+    creds = get_creds()
+    client = gspread.authorize(creds)
     try:
-        client = get_google_sheet_client()
         sheet = client.open("OurLoveMoney").sheet1
     except Exception as e:
         st.error(f"連線失敗，請檢查 Google 試算表名稱是否為 OurLoveMoney。錯誤：{e}")
         st.stop()
 
-    # 輸入區
     with st.container(border=True):
         col1, col2, col3 = st.columns([2, 1, 1])
         with col1:
@@ -118,7 +109,7 @@ elif selected == "記帳小管家":
         with col2:
             price = st.number_input("金額", min_value=0, step=10)
         with col3:
-            payer = st.selectbox("誰付的？", ["我", "男朋友"])
+            payer = st.selectbox("誰付的？", ["寶寶", "白白"])
         
         if st.button("上傳雲端", use_container_width=True):
             if item and price > 0:
