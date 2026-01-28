@@ -9,7 +9,9 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 
 st.set_page_config(page_title="我們的專屬小窩", layout="wide")
+
 FOLDER_ID = "1sr5pM4dii95MR3n4NIObXiz6pPInUee9?usp=sharing"
+
 # --- 側邊欄 (已移除願望清單) ---
 with st.sidebar:
     selected = option_menu(
@@ -49,6 +51,40 @@ def get_google_sheet_client():
             
     client = gspread.authorize(creds)
     return client
+
+def upload_image_to_drive(file_obj, filename, folder_id, creds):
+    try:
+        # 建立 Drive 服務
+        service = build('drive', 'v3', credentials=creds)
+        
+        file_metadata = {
+            'name': filename,
+            'parents': [folder_id]
+        }
+        
+        media = MediaIoBaseUpload(file_obj, mimetype=file_obj.type)
+        
+        # 執行上傳
+        file = service.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields='id, webViewLink'
+        ).execute()
+        
+        # 設定權限為公開 (這樣網頁才看得到)
+        service.permissions().create(
+            fileId=file.get('id'),
+            body={'role': 'reader', 'type': 'anyone'}
+        ).execute()
+        
+        # 產生圖片直接連結
+        file_id = file.get('id')
+        return f"https://drive.google.com/uc?export=view&id={file_id}"
+        
+    except Exception as e:
+        st.error(f"上傳失敗: {e}")
+        return None
+
 
 # --- 頁面內容 ---
 
