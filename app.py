@@ -110,76 +110,82 @@ if selected == "首頁":
 
 
 elif selected == "今天吃什麼":
-    st.title("🍔 吃飯選擇困難救星")
+    st.title("🍔 選擇困難救星 (雲端版)")
 
-    # 1. 這裡建立你們的「口袋名單資料庫」
-    # 價位代號： 1=便宜($), 2=普通($$), 3=大餐($$$)
-    food_data = [
-        {"name": "麥當勞", "type": "速食", "price": 1},
-        {"name": "肯德基", "type": "速食", "price": 1},
-        {"name": "巷口乾麵", "type": "台式", "price": 1},
-        {"name": "滷肉飯", "type": "台式", "price": 1},
-        {"name": "7-11", "type": "超商", "price": 1},
-        
-        {"name": "義大利麵", "type": "西式", "price": 2},
-        {"name": "拉麵", "type": "日式", "price": 2},
-        {"name": "韓式炸雞", "type": "韓式", "price": 2},
-        {"name": "泰式料理", "type": "泰式", "price": 2},
-        {"name": "迴轉壽司", "type": "日式", "price": 2},
-        
-        {"name": "馬辣火鍋", "type": "火鍋", "price": 3},
-        {"name": "王品牛排", "type": "西式", "price": 3},
-        {"name": "日式燒肉", "type": "日式", "price": 3},
-        {"name": "海港自助餐", "type": "吃到飽", "price": 3},
-    ]
+    # 連線到 Restaurants 分頁
+    creds = get_creds()
+    client = gspread.authorize(creds)
+    try:
+        # 記得要在 Google 試算表新增 'Restaurants' 分頁！
+        res_sheet = client.open("OurLoveMoney").worksheet("Restaurants")
+    except:
+        st.error("找不到 'Restaurants' 分頁，請去 Google 試算表新增一個！(記得大小寫要一樣)")
+        st.stop()
 
-    # 2. 製作篩選器
-    st.write("---")
-    col1, col2 = st.columns(2)
+    # --- 功能 1: 顯示目前的口袋名單 & 篩選 ---
+    all_restaurants = res_sheet.get_all_records()
     
-    with col1:
-        st.subheader("💰 預算多少？")
-        # 讓使用者多選價位
-        price_options = [1, 2, 3]
-        selected_prices = st.multiselect(
-            "請選擇價位 (可多選)",
-            options=price_options,
-            default=price_options, # 預設全選
-            format_func=lambda x: "銅板價 ($)" if x==1 else "一般聚餐 ($$)" if x==2 else "吃頓好的 ($$$)"
-        )
-
-    with col2:
-        st.subheader("🍜 想吃哪一類？")
-        # 自動抓取所有類型
-        all_types = sorted(list(set(item["type"] for item in food_data)))
-        selected_types = st.multiselect(
-            "請選擇類型 (可多選)",
-            options=all_types,
-            default=all_types # 預設全選
-        )
-
-    # 3. 按鈕與邏輯
-    st.write("---")
-    if st.button("幫我們決定！", type="primary", use_container_width=True):
-        # 篩選出符合條件的餐廳
-        candidates = [
-            f for f in food_data 
-            if f["price"] in selected_prices and f["type"] in selected_types
-        ]
+    if not all_restaurants:
+        st.warning("目前口袋名單是空的，快用下面的功能新增第一家餐廳吧！")
+    else:
+        # 準備資料
+        df_res = pd.DataFrame(all_restaurants)
         
-        if candidates:
-            # 隨機選一個
-            final_choice = random.choice(candidates)
+        # 篩選器介面
+        st.write("---")
+        col1, col2 = st.columns(2)
+        with col1:
+            st.subheader("💰 預算多少？")
+            price_options = [1, 2, 3]
+            selected_prices = st.multiselect(
+                "選擇價位", options=price_options, default=price_options,
+                format_func=lambda x: "銅板價 ($)" if x==1 else "一般聚餐 ($$)" if x==2 else "大餐 ($$$)"
+            )
+        with col2:
+            st.subheader("🍜 想吃哪一類？")
+            # 確保類型不重複
+            all_types = sorted(list(set(str(r['類型']) for r in all_restaurants)))
+            selected_types = st.multiselect("選擇類型", options=all_types, default=all_types)
+
+        # 決定按鈕
+        st.write("---")
+        if st.button("幫我們決定！", type="primary", use_container_width=True):
+            # 篩選邏輯
+            candidates = [
+                r for r in all_restaurants 
+                if r['價位'] in selected_prices and str(r['類型']) in selected_types
+            ]
             
-            # 顯示結果特效
-            st.balloons() 
-            st.header(f"✨ 今天就吃：{final_choice['name']} ✨")
+            if candidates:
+                final_choice = random.choice(candidates)
+                st.balloons()
+                st.header(f"✨ 今天就吃：{final_choice['餐廳名稱']} ✨")
+                p_label = "銅板價 💰" if final_choice['價位']==1 else "一般聚餐 💰💰" if final_choice['價位']==2 else "大餐 💰💰💰"
+                st.success(f"類型：{final_choice['類型']} | 價位：{p_label}")
+            else:
+                st.warning("沒有符合條件的餐廳，請放寬標準！")
+
+    # --- 功能 2: 手機快速新增餐廳 ---
+    with st.expander("➕ 新增餐廳到口袋名單", expanded=False):
+        st.write("在 Google Map 看到好吃的，直接在這裡輸入，下次就能抽到它！")
+        with st.form("add_res_form"):
+            new_name = st.text_input("餐廳名稱")
+            col_a, col_b = st.columns(2)
+            with col_a:
+                new_type = st.text_input("類型 (如: 拉麵, 火鍋)")
+            with col_b:
+                new_price = st.selectbox("價位", [1, 2, 3], format_func=lambda x: "銅板價 ($)" if x==1 else "一般聚餐 ($$)" if x==2 else "大餐 ($$$)")
             
-            # 顯示詳細資訊
-            price_label = "銅板價 💰" if final_choice['price']==1 else "一般聚餐 💰💰" if final_choice['price']==2 else "大餐 💰💰💰"
-            st.success(f"類型：{final_choice['type']} | 價位：{price_label}")
-        else:
-            st.warning("🥺 嗚嗚，沒有符合條件的餐廳... 請放寬一點標準吧！")
+            submitted = st.form_submit_button("加入名單")
+            if submitted:
+                if new_name and new_type:
+                    res_sheet.append_row([new_name, new_type, new_price])
+                    st.success(f"已加入：{new_name}")
+                    st.cache_data.clear() # 清除快取以更新名單
+                    # 這裡用個小技巧讓網頁重新整理，顯示最新名單
+                    st.rerun()
+                else:
+                    st.warning("名稱和類型都要填喔！")
 
 elif selected == "記帳小管家":
     st.title("💰 雲端記帳本")
