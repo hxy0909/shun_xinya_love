@@ -89,11 +89,11 @@ def get_price_label(price_code):
         return str(price_code)
 
     if code == 1:
-        return "$0 - $100"
+        return "0 - 100"
     elif code == 2:
-        return "$101 - $300"
+        return "101 - 300"
     elif code == 3:
-        return "$301 以上"
+        return "301 以上"
     else:
         return str(code)
 
