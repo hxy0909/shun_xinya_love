@@ -9,7 +9,7 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 from datetime import date # 新增這一行
 
-st.set_page_config(page_title="我們的專屬小窩", layout="wide")
+st.set_page_config(page_title="我們的專屬小窩", page_icon="☀️", layout="wide")
 
 # 👇 請記得把這裡換成妳 Google Drive 的資料夾 ID (那串亂碼)
 FOLDER_ID = "1sr5pM4dii95MR3n4NIObXiz6pPInUee9?usp=sharing"
@@ -84,7 +84,7 @@ def upload_image_to_drive(file_obj, filename, folder_id, creds):
 # --- 頁面內容 ---
 
 if selected == "首頁":
-    st.title("歡迎回家！💑")
+    st.title("歡迎回家！☀️✨")
     
     # --- 計算天數邏輯 ---
     today = date.today()
