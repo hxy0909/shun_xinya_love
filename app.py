@@ -110,10 +110,76 @@ if selected == "首頁":
 
 
 elif selected == "今天吃什麼":
-    st.title("🍔 選擇困難救星")
-    if st.button("幫我們決定！"):
-        options = ['火鍋', '義大利麵', '壽司', '麥當勞', '牛排', '拉麵']
-        st.header(f"✨ 今天就吃：{random.choice(options)} ✨")
+    st.title("🍔 吃飯選擇困難救星")
+
+    # 1. 這裡建立你們的「口袋名單資料庫」
+    # 價位代號： 1=便宜($), 2=普通($$), 3=大餐($$$)
+    food_data = [
+        {"name": "麥當勞", "type": "速食", "price": 1},
+        {"name": "肯德基", "type": "速食", "price": 1},
+        {"name": "巷口乾麵", "type": "台式", "price": 1},
+        {"name": "滷肉飯", "type": "台式", "price": 1},
+        {"name": "7-11", "type": "超商", "price": 1},
+        
+        {"name": "義大利麵", "type": "西式", "price": 2},
+        {"name": "拉麵", "type": "日式", "price": 2},
+        {"name": "韓式炸雞", "type": "韓式", "price": 2},
+        {"name": "泰式料理", "type": "泰式", "price": 2},
+        {"name": "迴轉壽司", "type": "日式", "price": 2},
+        
+        {"name": "馬辣火鍋", "type": "火鍋", "price": 3},
+        {"name": "王品牛排", "type": "西式", "price": 3},
+        {"name": "日式燒肉", "type": "日式", "price": 3},
+        {"name": "海港自助餐", "type": "吃到飽", "price": 3},
+    ]
+
+    # 2. 製作篩選器
+    st.write("---")
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("💰 預算多少？")
+        # 讓使用者多選價位
+        price_options = [1, 2, 3]
+        selected_prices = st.multiselect(
+            "請選擇價位 (可多選)",
+            options=price_options,
+            default=price_options, # 預設全選
+            format_func=lambda x: "銅板價 ($)" if x==1 else "一般聚餐 ($$)" if x==2 else "吃頓好的 ($$$)"
+        )
+
+    with col2:
+        st.subheader("🍜 想吃哪一類？")
+        # 自動抓取所有類型
+        all_types = sorted(list(set(item["type"] for item in food_data)))
+        selected_types = st.multiselect(
+            "請選擇類型 (可多選)",
+            options=all_types,
+            default=all_types # 預設全選
+        )
+
+    # 3. 按鈕與邏輯
+    st.write("---")
+    if st.button("幫我們決定！", type="primary", use_container_width=True):
+        # 篩選出符合條件的餐廳
+        candidates = [
+            f for f in food_data 
+            if f["price"] in selected_prices and f["type"] in selected_types
+        ]
+        
+        if candidates:
+            # 隨機選一個
+            final_choice = random.choice(candidates)
+            
+            # 顯示結果特效
+            st.balloons() 
+            st.header(f"✨ 今天就吃：{final_choice['name']} ✨")
+            
+            # 顯示詳細資訊
+            price_label = "銅板價 💰" if final_choice['price']==1 else "一般聚餐 💰💰" if final_choice['price']==2 else "大餐 💰💰💰"
+            st.success(f"類型：{final_choice['type']} | 價位：{price_label}")
+        else:
+            st.warning("🥺 嗚嗚，沒有符合條件的餐廳... 請放寬一點標準吧！")
 
 elif selected == "記帳小管家":
     st.title("💰 雲端記帳本")
