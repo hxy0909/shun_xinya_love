@@ -5,9 +5,11 @@ import random
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import json
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseUpload
 
 st.set_page_config(page_title="我們的專屬小窩", layout="wide")
-
+FOLDER_ID = "1sr5pM4dii95MR3n4NIObXiz6pPInUee9?usp=sharing"
 # --- 側邊欄 (已移除願望清單) ---
 with st.sidebar:
     selected = option_menu(
@@ -192,4 +194,5 @@ elif selected == "回憶相簿":
                 st.image(row['網址'], caption=f"{row['日期']} - {row['描述']}", use_container_width=True)
                 st.markdown("---")
     else:
+
         st.info("目前還沒有照片，快去貼上第一張精選回憶吧！")
