@@ -141,37 +141,42 @@ elif selected == "旅遊地圖":
         st.rerun() # 重新整理網頁，讓地圖立刻更新
 
 elif selected == "回憶相簿":
-    st.title("📸 我們的甜蜜回憶")
+    st.title("📸 我們的精選回憶")
     
-    # 1. 建立分頁 (Tab)
-    # 這樣可以把照片分類，不會全部擠在一起
-    tab1, tab2, tab3 = st.tabs(["甜蜜合照", "旅遊風景", "黑歷史(誤)"])
+    # 1. 連線到 Google Sheet
+    try:
+        client = get_google_sheet_client()
+        # 記得去試算表新增一個叫做 "Photos" 的分頁！
+        photo_sheet = client.open("OurLoveMoney").worksheet("Photos")
+    except:
+        st.error("找不到 'Photos' 分頁，請去 Google 試算表新增一個喔！")
+        st.stop()
 
-    # --- 第一個分頁：上傳區 ---
-    with tab1:
-        st.header("上傳一張新照片看看！")
+    # 2. 新增照片區 (用貼連結的方式)
+    with st.expander("➕ 新增照片到回憶牆"):
+        st.write("因為照片檔案很大，建議把照片上傳到網路(如 imgur.com)，再把網址貼過來喔！")
+        p_note = st.text_input("這張照片的故事...")
+        p_url = st.text_input("照片網址 (記得要是 .jpg 或 .png 結尾的連結喔)")
         
-        # 檔案上傳元件
-        uploaded_file = st.file_uploader("選擇一張照片...", type=['jpg', 'png', 'jpeg'])
-        
-        if uploaded_file is not None:
-            # 顯示剛上傳的照片
-            st.image(uploaded_file, caption="剛上傳的照片", use_container_width=True)
-            st.balloons() # 放個氣球慶祝一下
-            st.success("照片上傳成功！好看嗎？")
-            st.info("⚠️ 小提醒：目前因為還沒連上雲端，重新整理網頁後這張照片會消失喔！")
+        if st.button("永久收藏"):
+            if p_note and p_url:
+                from datetime import datetime
+                date_str = datetime.now().strftime("%Y-%m-%d")
+                photo_sheet.append_row([date_str, p_note, p_url])
+                st.success("回憶已儲存！")
+                st.cache_data.clear() # 清除快取，讓新照片馬上顯示
+            else:
+                st.warning("描述和網址都要填喔！")
 
-    # --- 第二個分頁：固定照片展示 ---
-    with tab2:
-        st.header("去過的地方")
-        col1, col2 = st.columns(2)
-        with col1:
-            # 這裡示範怎麼顯示網路上的圖片 (最簡單的方法)
-            st.image("https://images.unsplash.com/photo-1526772662000-3f88f107f5d8", caption="未來要去迪士尼！")
-        with col2:
-            st.image("https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1", caption="想去瑞士看山")
-
-    # --- 第三個分頁：趣味區 ---
-    with tab3:
-        st.header("專屬收藏")
-        st.write("這裡可以放一些生活照 😂")
+    # 3. 顯示相簿牆
+    st.divider()
+    records = photo_sheet.get_all_records()
+    
+    if records:
+        # 這裡我們把資料反過來，讓最新的照片顯示在最上面
+        for row in reversed(records):
+            if row['網址']: # 確保有網址才顯示
+                st.image(row['網址'], caption=f"{row['日期']} - {row['描述']}", use_container_width=True)
+                st.markdown("---")
+    else:
+        st.info("目前還沒有照片，快去貼上第一張精選回憶吧！")
