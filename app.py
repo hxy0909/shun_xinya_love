@@ -143,28 +143,41 @@ elif selected == "旅遊地圖":
 elif selected == "回憶相簿":
     st.title("📸 我們的精選回憶")
     
+    # --- Google Drive 連結翻譯機 ---
+    def fix_google_drive_url(url):
+        if "drive.google.com" in url:
+            # 如果是 Google Drive 的連結，進行轉換
+            file_id = url.split('/')[-2]
+            if "id=" in url: # 另一種格式
+                 file_id = url.split('id=')[-1].split('&')[0]
+            # 變成可以直接顯示的圖片網址
+            return f"https://drive.google.com/uc?export=view&id={file_id}"
+        return url
+
     # 1. 連線到 Google Sheet
     try:
         client = get_google_sheet_client()
-        # 記得去試算表新增一個叫做 "Photos" 的分頁！
         photo_sheet = client.open("OurLoveMoney").worksheet("Photos")
     except:
         st.error("找不到 'Photos' 分頁，請去 Google 試算表新增一個喔！")
         st.stop()
 
-    # 2. 新增照片區 (用貼連結的方式)
+    # 2. 新增照片區
     with st.expander("➕ 新增照片到回憶牆"):
-        st.write("因為照片檔案很大，建議把照片上傳到網路(如 imgur.com)，再把網址貼過來喔！")
+        st.info("💡 小撇步：把照片上傳到 Google Drive，按右鍵「取得連結」(記得開權限：知道連結的人均可檢視)，然後把連結貼過來就好囉！")
         p_note = st.text_input("這張照片的故事...")
-        p_url = st.text_input("照片網址 (記得要是 .jpg 或 .png 結尾的連結喔)")
+        p_url_input = st.text_input("照片網址 (支援 Google Drive 分享連結)")
         
         if st.button("永久收藏"):
-            if p_note and p_url:
+            if p_note and p_url_input:
+                # 在存入之前，先用翻譯機轉換一下
+                final_url = fix_google_drive_url(p_url_input)
+                
                 from datetime import datetime
                 date_str = datetime.now().strftime("%Y-%m-%d")
-                photo_sheet.append_row([date_str, p_note, p_url])
+                photo_sheet.append_row([date_str, p_note, final_url])
                 st.success("回憶已儲存！")
-                st.cache_data.clear() # 清除快取，讓新照片馬上顯示
+                st.cache_data.clear()
             else:
                 st.warning("描述和網址都要填喔！")
 
@@ -173,9 +186,9 @@ elif selected == "回憶相簿":
     records = photo_sheet.get_all_records()
     
     if records:
-        # 這裡我們把資料反過來，讓最新的照片顯示在最上面
         for row in reversed(records):
-            if row['網址']: # 確保有網址才顯示
+            if row['網址']:
+                # 顯示圖片 (這裡不用再轉了，因為存進去的時候已經轉好了)
                 st.image(row['網址'], caption=f"{row['日期']} - {row['描述']}", use_container_width=True)
                 st.markdown("---")
     else:
