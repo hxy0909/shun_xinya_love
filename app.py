@@ -81,6 +81,22 @@ def upload_image_to_drive(file_obj, filename, folder_id, creds):
         st.error(f"上傳失敗: {e}")
         return None
 
+def get_price_label(price_code):
+    # 如果讀到的是文字，嘗試轉成數字，轉不過就回傳原文字
+    try:
+        code = int(price_code)
+    except:
+        return str(price_code)
+
+    if code == 1:
+        return "$0 - $100"
+    elif code == 2:
+        return "$101 - $300"
+    elif code == 3:
+        return "$301 以上"
+    else:
+        return str(code)
+
 # --- 頁面內容 ---
 
 if selected == "首頁":
