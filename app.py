@@ -89,7 +89,7 @@ def upload_image_to_drive(file_obj, filename, folder_id, creds):
 # --- 頁面內容 ---
 
 if selected == "首頁":
-    st.title("歡迎回家！💑")
+    st.title("歡迎回家！☀️")
     st.success("這是我們一起開發的第一個網站！")
     st.balloons()
 
@@ -181,56 +181,45 @@ elif selected == "旅遊地圖":
 elif selected == "回憶相簿":
     st.title("📸 我們的精選回憶")
     
-    # --- Google Drive 連結翻譯機 ---
-    def fix_google_drive_url(url):
-        if "drive.google.com" in url:
-            # 如果是 Google Drive 的連結，進行轉換
-            file_id = url.split('/')[-2]
-            if "id=" in url: # 另一種格式
-                 file_id = url.split('id=')[-1].split('&')[0]
-            # 變成可以直接顯示的圖片網址
-            return f"https://drive.google.com/uc?export=view&id={file_id}"
-        return url
-
-    # 1. 連線到 Google Sheet
+    creds = get_creds()
+    client = gspread.authorize(creds)
     try:
-        client = get_google_sheet_client()
         photo_sheet = client.open("OurLoveMoney").worksheet("Photos")
     except:
-        st.error("找不到 'Photos' 分頁，請去 Google 試算表新增一個喔！")
+        st.error("找不到 'Photos' 分頁，請去試算表新增一個！")
         st.stop()
 
-    # 2. 新增照片區
-    with st.expander("➕ 新增照片到回憶牆"):
-        st.info("💡 小撇步：把照片上傳到 Google Drive，按右鍵「取得連結」(記得開權限：知道連結的人均可檢視)，然後把連結貼過來就好囉！")
-        p_note = st.text_input("這張照片的故事...")
-        p_url_input = st.text_input("照片網址 (支援 Google Drive 分享連結)")
+    # --- 手機上傳專區 ---
+    with st.expander("➕ 新增照片 (手機上傳版)", expanded=True):
+        st.write("直接從手機相簿選照片，機器人會自動幫你上傳到 Google Drive！")
         
-        if st.button("永久收藏"):
-            if p_note and p_url_input:
-                # 在存入之前，先用翻譯機轉換一下
-                final_url = fix_google_drive_url(p_url_input)
-                
-                from datetime import datetime
-                date_str = datetime.now().strftime("%Y-%m-%d")
-                photo_sheet.append_row([date_str, p_note, final_url])
-                st.success("回憶已儲存！")
-                st.cache_data.clear()
-            else:
-                st.warning("描述和網址都要填喔！")
+        # 1. 輸入描述
+        p_note = st.text_input("這張照片的故事...")
+        
+        # 2. 上傳按鈕
+        uploaded_file = st.file_uploader("選擇一張照片...", type=['jpg', 'png', 'jpeg'])
+        
+        if uploaded_file is not None:
+            if st.button("開始上傳 & 儲存", type="primary"):
+                if p_note:
+                    with st.spinner('正在把照片傳給機器人...請稍等...'):
+                        # A. 上傳到 Google Drive
+                        image_link = upload_image_to_drive(uploaded_file, uploaded_file.name, FOLDER_ID, creds)
+                        
+                        if image_link:
+                            # B. 儲存連結到試算表
+                            from datetime import datetime
+                            date_str = datetime.now().strftime("%Y-%m-%d")
+                            photo_sheet.append_row([date_str, p_note, image_link])
+                            st.success("🎉 上傳成功！照片已永久保存！")
+                            st.cache_data.clear()
+                else:
+                    st.warning("請先寫一點照片的故事喔！")
 
-    # 3. 顯示相簿牆
     st.divider()
     records = photo_sheet.get_all_records()
-    
     if records:
         for row in reversed(records):
             if row['網址']:
-                # 顯示圖片 (這裡不用再轉了，因為存進去的時候已經轉好了)
                 st.image(row['網址'], caption=f"{row['日期']} - {row['描述']}", use_container_width=True)
                 st.markdown("---")
-    else:
-
-
-        st.info("目前還沒有照片，快去貼上第一張精選回憶吧！")
-
