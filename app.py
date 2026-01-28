@@ -7,13 +7,15 @@ from oauth2client.service_account import ServiceAccountCredentials
 import json
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
+from datetime import date # 新增這一行
 
 st.set_page_config(page_title="我們的專屬小窩", layout="wide")
 
-# ==========================================
 # 👇 請記得把這裡換成妳 Google Drive 的資料夾 ID (那串亂碼)
 FOLDER_ID = "1sr5pM4dii95MR3n4NIObXiz6pPInUee9?usp=sharing"
-# ==========================================
+
+# 👇 【請修改這裡】 2. 設定你們的交往紀念日 (格式：年, 月, 日)
+LOVE_START_DATE = date(2025, 9, 17)
 
 # --- 側邊欄 ---
 with st.sidebar:
@@ -82,9 +84,30 @@ def upload_image_to_drive(file_obj, filename, folder_id, creds):
 # --- 頁面內容 ---
 
 if selected == "首頁":
-    st.title("歡迎回家！☀️")
-    st.success("這是我們一起開發的第一個網站！")
-    st.balloons()
+    st.title("歡迎回家！💑")
+    
+    # --- 計算天數邏輯 ---
+    today = date.today()
+    # 1. 在一起天數
+    days_together = (today - LOVE_START_DATE).days
+    
+    # 2. 下次紀念日倒數
+    this_year_anniversary = date(today.year, LOVE_START_DATE.month, LOVE_START_DATE.day)
+    if this_year_anniversary < today:
+        # 如果今年的紀念日已經過了，就算明年的
+        next_anniversary = date(today.year + 1, LOVE_START_DATE.month, LOVE_START_DATE.day)
+    else:
+        next_anniversary = this_year_anniversary
+        
+    days_countdown = (next_anniversary - today).days
+
+    # --- 顯示數據 (使用卡片樣式) ---
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric(label="💕 我們已經在一起", value=f"{days_together} 天")
+    with col2:
+        st.metric(label="🎂 距離週年紀念日還有", value=f"{days_countdown} 天")
+
 
 elif selected == "今天吃什麼":
     st.title("🍔 選擇困難救星")
