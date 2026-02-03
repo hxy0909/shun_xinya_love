@@ -429,9 +429,9 @@ elif selected == "旅遊地圖":
         with col_lon:
             manual_lon = st.number_input("經度 (Longitude)", value=121.0, format="%.5f")
             
-        manual_place = st.text_input("地點名稱")
-        manual_date = st.date_input("日期", date.today(), key="manual_date")
-        manual_note = st.text_input("備註")
+        manual_place = st.text_input("地點名稱(手動)")
+        manual_date = st.date_input("日期(手動)", date.today(), key="manual_date")
+        manual_note = st.text_input("備註(手動)")
         
         if st.button("➕ 手動加入座標", type="primary"):
             if manual_place:
