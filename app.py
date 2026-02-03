@@ -224,7 +224,7 @@ elif selected == "去哪裡玩":
         # 記得新增 PlayList 分頁！
         play_sheet = client.open("OurLoveMoney").worksheet("PlayList")
     except:
-        st.error("⚠️ 找不到 'PlayList' 分頁！請去試算表新增，標題：地點、縣市、類型、備註")
+        st.error("⚠️ 找不到 'PlayList' 分頁！請去試算表新增，標題：地點、縣市、類型、預算、備註")
         st.stop()
 
     all_places = play_sheet.get_all_records()
@@ -234,18 +234,21 @@ elif selected == "去哪裡玩":
         st.info("目前還沒有景點名單，快來新增第一個想去的地方吧！👇")
     else:
         # --- 篩選器 ---
-        c1, c2 = st.columns(2)
+        c1, c2, c3 = st.columns(3)
         with c1:
-            st.subheader("🚗 想去哪個縣市？")
-            # 抓取目前資料庫裡有的縣市
+            st.subheader("🚗 哪個縣市？")
             existing_cities = sorted(list(set([str(r.get('縣市', '')) for r in all_places if r.get('縣市')])))
-            selected_cities = st.multiselect("選擇縣市 (留空代表全台灣)", options=existing_cities)
+            selected_cities = st.multiselect("選擇縣市", options=existing_cities)
         
         with c2:
-            st.subheader("🎨 想玩什麼類型？")
-            # 自動抓取所有類型
+            st.subheader("🎨 什麼類型？")
             all_types = sorted(list(set(str(r['類型']) for r in all_places)))
-            selected_types = st.multiselect("選擇類型 (留空代表都可以)", options=all_types)
+            selected_types = st.multiselect("選擇類型", options=all_types)
+
+        with c3:
+            st.subheader("💰 預算多少？")
+            price_options = [1, 2, 3]
+            selected_prices = st.multiselect("選擇預算", options=price_options, default=price_options, format_func=get_play_price_label)
 
         st.write("---")
         if st.button("🎲 幫我們決定去哪玩！", type="primary", use_container_width=True):
@@ -257,13 +260,17 @@ elif selected == "去哪裡玩":
                 # 2. 篩選類型
                 if selected_types and r.get('類型') not in selected_types:
                     continue
+                # 3. 篩選預算 (新功能)
+                if selected_prices and r.get('預算') not in selected_prices:
+                    continue
                 candidates.append(r)
             
             if candidates:
                 final_choice = random.choice(candidates)
                 st.balloons()
                 st.markdown(f"## 🎯 決定了！就去：**{final_choice['地點']}**")
-                st.success(f"📍 {final_choice['縣市']} | {final_choice['類型']}")
+                p_label = get_play_price_label(final_choice.get('預算', 1)) # 預設為1
+                st.success(f"📍 {final_choice['縣市']} | {final_choice['類型']} | 💰 {p_label}")
                 if final_choice.get('備註'):
                     st.info(f"💡 筆記：{final_choice['備註']}")
             else:
@@ -277,17 +284,20 @@ elif selected == "去哪裡玩":
             
             c_city, c_type = st.columns(2)
             with c_city:
-                # 使用 TAIWAN_DATA 的縣市列表
                 new_city = st.selectbox("縣市", options=list(TAIWAN_DATA.keys()))
             with c_type:
-                # 這裡可以讓使用者自己打，或選幾個常用的
                 new_type = st.text_input("類型 (如: 戶外, 室內, 逛街, 樂園)")
             
-            new_note = st.text_input("備註 (如: 門票價格, 營業時間)")
+            c_price, c_note = st.columns(2)
+            with c_price:
+                # 這裡增加預算選擇
+                new_price = st.selectbox("預算", options=[1, 2, 3], format_func=get_play_price_label)
+            with c_note:
+                new_note = st.text_input("備註 (如: 門票價格, 營業時間)")
             
             if st.form_submit_button("加入願望清單"):
                 if new_place and new_type:
-                    play_sheet.append_row([new_place, new_city, new_type, new_note])
+                    play_sheet.append_row([new_place, new_city, new_type, new_price, new_note])
                     st.success(f"✅ 已加入願望：{new_city} 的 {new_place}")
                     st.cache_data.clear()
                     st.rerun()
@@ -572,9 +582,9 @@ elif selected == "使用說明":
     
     with st.expander("🍔 要吃什麼 (美食抽籤)"):
         st.write("""
-        1. **篩選**：可以選擇「縣市」、「地區」、「預算」和「類型」。
-        2. **抽籤**：按下「幫我們決定！」按鈕，系統會從符合條件的口袋名單中隨機選出一家。
-        3. **新增餐廳**：
+        1. 篩選：可以選擇「縣市」、「地區」、「預算」和「類型」。
+        2. 抽籤：按下「幫我們決定！」按鈕，系統會從符合條件的口袋名單中隨機選出一家。
+        3. 新增餐廳：
            - 點擊下方的「➕ 新增餐廳到口袋名單」。
            - **重要**：請先在選單上方選擇「縣市」和「地區」，選單會自動連動。
            - 填寫名稱、類型和預算，按下「加入名單」即可。
@@ -582,23 +592,23 @@ elif selected == "使用說明":
     
     with st.expander("🎢 去哪裡玩 (旅遊抽籤)"):
         st.write("""
-        1. **功能**：專治「不知道去哪玩」。
-        2. **篩選**：選擇想去的「縣市」或想玩的「類型」（戶外/室內/樂園...）。
-        3. **新增**：
+        1. 功能：專治「不知道去哪玩」。
+        2. 篩選：選擇想去的「縣市」、「類型」或「預算」。
+        3. 新增：
            - 在下方輸入你想去的景點名稱。
-           - 記得選好縣市和類型，方便以後篩選喔！
+           - 記得選好縣市、類型和預算，方便以後篩選喔！
         """)
         
     with st.expander("💰 記帳管家 (理財工具)"):
         st.write("""
-        1. **記帳**：
+        1. 記帳：
            - 輸入項目和總金額。
            - 選擇「誰先付錢」。
            - **分攤方式**：
              - **一人一半**：系統自動除以 2。
              - **自定義**：手動輸入「對方該付多少錢」（例如你吃 200，對方吃 500，他先付錢，你在這裡輸入 200）。
-        2. **看債務**：切換到「🔥 未結清」頁面，藍色框框會自動算出「誰要給誰多少錢」。
-        3. **結帳/刪除**：
+        2. 看債務：切換到「🔥 未結清」頁面，藍色框框會自動算出「誰要給誰多少錢」。
+        3. 結帳/刪除：
            - 在下方的選單選擇要處理的項目。
            - 按 **「✅ 標記為已結清」**：該筆帳會移入歷史紀錄，不再計算債務。
            - 按 **「🗑️ 刪除」**：直接刪除該筆資料。
@@ -606,18 +616,18 @@ elif selected == "使用說明":
         
     with st.expander("🌍 旅遊地圖 (打卡紀錄)"):
         st.write("""
-        1. **自動搜尋**：輸入地名（例如：台北101），選擇日期，按下搜尋。系統會自動抓取座標並標記。
-        2. **手動輸入**：如果自動搜尋找不到（例如深山露營區）：
+        1. 自動搜尋：輸入地名（例如：台北101），選擇日期，按下搜尋。系統會自動抓取座標並標記。
+        2. 手動輸入：如果自動搜尋找不到（例如深山露營區）：
            - 打開手機 Google Maps。
            - **長按**地圖上的點。
            - 搜尋列或下方會出現一串數字（例如 `24.123, 120.456`）。
            - 點開網站上的「📍 找不到地點？手動輸入座標」，把數字填進去即可。
-        3. **查看地圖**：滑鼠移到地圖上的紅點，會顯示日期和備註喔！
+        3. 查看地圖：滑鼠移到地圖上的紅點，會顯示日期和備註喔！
         """)
         
     with st.expander("📸 回憶相簿 (雲端儲存)"):
         st.write("""
-        1. **上傳**：點擊「Browse files」選擇照片，填寫故事，按上傳。
-        2. **原理**：照片會自動上傳到你的 Google Drive，並將連結存入試算表，所以不會消失！
-        3. **注意**：如果上傳失敗，請確認 Google Drive 資料夾權限是否正確開啟。
+        1. 上傳：點擊「Browse files」選擇照片，填寫故事，按上傳。
+        2. 原理：照片會自動上傳到你的 Google Drive，並將連結存入試算表，所以不會消失！
+        3. 注意：如果上傳失敗，請確認 Google Drive 資料夾權限是否正確開啟。
         """)
