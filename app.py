@@ -369,7 +369,7 @@ elif selected == "旅遊地圖":
                         data=df_map,
                         get_position='[經度, 緯度]',
                         get_color='[255, 75, 75, 200]',
-                        get_radius=2000,
+                        get_radius=200,
                         pickable=True,
                         auto_highlight=True,
                     ),
