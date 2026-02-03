@@ -11,15 +11,18 @@ from datetime import datetime, date
 from geopy.geocoders import Nominatim # 👈 就是這一行！地圖小幫手在這裡！
 from geopy.extra.rate_limiter import RateLimiter
 
-
+# 設定頁面圖示為太陽 ☀️
 st.set_page_config(page_title="我們的專屬小窩", page_icon="☀️", layout="wide")
 
-# 👇 請記得把這裡換成妳 Google Drive 的資料夾 ID (那串亂碼)
-FOLDER_ID = "1sr5pM4dii95MR3n4NIObXiz6pPInUee9?usp=sharing"
+# ==========================================
+# 👇 【請修改這裡】 1. 貼上妳的 Google Drive 資料夾 ID
+FOLDER_ID = "這裡貼上你的資料夾ID"
 
-# 👇 【請修改這裡】 2. 設定你們的交往紀念日 (格式：年, 月, 日)
-LOVE_START_DATE = date(2025, 9, 17)
+# 👇 【請修改這裡】 2. 設定你們的交往紀念日
+LOVE_START_DATE = date(2023, 5, 20)
+# ==========================================
 
+# --- 台灣縣市區域資料庫 ---
 TAIWAN_DATA = {
     "基隆市": ["仁愛區", "信義區", "中正區", "中山區", "安樂區", "暖暖區", "七堵區"],
     "臺北市": ["中正區", "大同區", "中山區", "松山區", "大安區", "萬華區", "信義區", "士林區", "北投區", "內湖區", "南港區", "文山區"],
@@ -52,96 +55,78 @@ with st.sidebar:
         options=["首頁", "今天吃什麼", "記帳小管家", "旅遊地圖", "回憶相簿"],
         icons=["house", "egg-fried", "currency-dollar", "map", "images"],
         menu_icon="heart",
-        default_index=0,
+        default_index=3, # 預設停在旅遊地圖
     )
 
-# --- 共用連線函式 (這裡是關鍵！必須要有 get_creds) ---
+# --- 共用連線函式 ---
 @st.cache_resource
 def get_creds():
     scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
     creds = None
-    
-    # 1. 雲端保險箱
     if "gcp" in st.secrets:
         try:
             key_dict = json.loads(st.secrets["gcp"]["json_file"])
             creds = ServiceAccountCredentials.from_json_keyfile_dict(key_dict, scope)
         except Exception as e:
             st.error(f"保險箱讀取錯誤: {e}")
-    
-    # 2. 本地檔案
     if creds is None:
         try:
             creds = ServiceAccountCredentials.from_json_keyfile_name('secrets.json', scope)
         except:
             st.error("找不到鑰匙！請確認 secrets.json 或雲端 Secrets 設定正確。")
             st.stop()
-            
     return creds
 
-# --- 上傳檔案到 Google Drive 的函式 ---
+# --- 上傳檔案到 Drive 函式 ---
 def upload_image_to_drive(file_obj, filename, folder_id, creds):
     try:
         service = build('drive', 'v3', credentials=creds)
-        
-        file_metadata = {
-            'name': filename,
-            'parents': [folder_id]
-        }
-        
+        file_metadata = {'name': filename, 'parents': [folder_id]}
         media = MediaIoBaseUpload(file_obj, mimetype=file_obj.type)
-        
-        file = service.files().create(
-            body=file_metadata,
-            media_body=media,
-            fields='id, webViewLink'
-        ).execute()
-        
-        service.permissions().create(
-            fileId=file.get('id'),
-            body={'role': 'reader', 'type': 'anyone'}
-        ).execute()
-        
-        file_id = file.get('id')
-        return f"https://drive.google.com/uc?export=view&id={file_id}"
-        
+        file = service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+        service.permissions().create(fileId=file.get('id'), body={'role': 'reader', 'type': 'anyone'}).execute()
+        return f"https://drive.google.com/uc?export=view&id={file.get('id')}"
     except Exception as e:
         st.error(f"上傳失敗: {e}")
         return None
 
+# --- 價格顯示轉換小工具 ---
 def get_price_label(price_code):
-    # 如果讀到的是文字，嘗試轉成數字，轉不過就回傳原文字
     try:
         code = int(price_code)
     except:
         return str(price_code)
-
     if code == 1:
-        return "0 - 100"
+        return "$0 - $150"
     elif code == 2:
-        return "101 - 300"
+        return "$151 - $400"
     elif code == 3:
-        return "301 以上"
+        return "$401 以上"
     else:
         return str(code)
 
 # --- 頁面內容 ---
 
 if selected == "首頁":
-    st.title("歡迎回家！☀️✨")
-    
-    # --- 計算天數邏輯 ---
+    st.title("歡迎回家！💑")
     today = date.today()
-    # 1. 在一起天數
     days_together = (today - LOVE_START_DATE).days
+    this_year_anniversary = date(today.year, LOVE_START_DATE.month, LOVE_START_DATE.day)
+    if this_year_anniversary < today:
+        next_anniversary = date(today.year + 1, LOVE_START_DATE.month, LOVE_START_DATE.day)
+    else:
+        next_anniversary = this_year_anniversary
+    days_countdown = (next_anniversary - today).days
 
-    # --- 顯示數據 (使用卡片樣式) ---
     col1, col2 = st.columns(2)
     with col1:
         st.metric(label="💕 我們已經在一起", value=f"{days_together} 天")
+    with col2:
+        st.metric(label="🎂 距離週年紀念日還有", value=f"{days_countdown} 天")
+    st.success("這是我們一起開發的第一個網站！")
 
 elif selected == "今天吃什麼":
-    st.title("🍔 吃飯選擇困難救星")
+    st.title("🍚 吃飯選擇困難救星")
     creds = get_creds()
     client = gspread.authorize(creds)
     try:
@@ -154,11 +139,11 @@ elif selected == "今天吃什麼":
     st.write("---")
     c1, c2 = st.columns(2)
     with c1:
-        st.subheader("📍 縣市")
+        st.subheader("📍 哪裡？")
         existing_cities = list(TAIWAN_DATA.keys())
         selected_cities = st.multiselect("縣市", options=existing_cities)
     with c2:
-        st.subheader("🏘️ 地區")
+        st.subheader("🏘️ 地區？")
         available_districts = []
         if selected_cities:
             for city in selected_cities:
@@ -169,11 +154,11 @@ elif selected == "今天吃什麼":
 
     c3, c4 = st.columns(2)
     with c3:
-        st.subheader("💰 預算")
+        st.subheader("💰 預算？")
         price_options = [1, 2, 3]
         selected_prices = st.multiselect("價格", options=price_options, default=price_options, format_func=get_price_label)
     with c4:
-        st.subheader("🍜 類型")
+        st.subheader("🍜 類型？")
         all_types = sorted(list(set(str(r['類型']) for r in all_restaurants))) if all_restaurants else []
         selected_types = st.multiselect("類型", options=all_types, default=all_types)
 
@@ -218,7 +203,7 @@ elif selected == "今天吃什麼":
                     st.rerun()
 
 elif selected == "記帳小管家":
-    st.title("💰 雲端記帳管家")
+    st.title("💰 記帳 2.0")
     creds = get_creds()
     client = gspread.authorize(creds)
     try:
@@ -227,20 +212,17 @@ elif selected == "記帳小管家":
         st.error("找不到試算表，請檢查名稱。")
         st.stop()
 
-    # --- 1. 新增記帳區 ---
     with st.container(border=True):
         st.subheader("📝 新增一筆")
         col1, col2 = st.columns([2, 1])
         with col1:
-            item = st.text_input("消費項目", placeholder="例如: 晚餐、電影")
+            item = st.text_input("消費項目")
         with col2:
             total_price = st.number_input("總金額", min_value=0, step=10)
-            
         col3, col4 = st.columns(2)
         with col3:
             payer = st.selectbox("誰先付錢？", ["我", "男朋友"])
         with col4:
-            # 這裡就是妳要的「選擇彼此花了多少」
             split_mode = st.radio("怎麼分攤？", ["一人一半 (平分)", "幫對方付 (全額)", "自定義 (輸入對方該付多少)"], horizontal=True)
 
         debt_amount = 0
@@ -249,12 +231,11 @@ elif selected == "記帳小管家":
         elif split_mode == "幫對方付 (全額)":
             debt_amount = total_price
         else:
-            debt_amount = st.number_input(f"💸 {payer} 先付了 {total_price}，其中「對方」該付多少？", min_value=0.0, max_value=float(total_price))
+            debt_amount = st.number_input(f"💸 對方該付多少？", min_value=0.0, max_value=float(total_price))
 
         if st.button("上傳雲端", key="add_money", type="primary", use_container_width=True):
             if item and total_price > 0:
                 date_str = datetime.now().strftime("%Y-%m-%d")
-                # 欄位順序：日期, 項目, 總金額, 付款人, 對方應付, 狀態
                 sheet.append_row([date_str, item, total_price, payer, debt_amount, "未結清"])
                 st.success("✅ 記帳成功！")
                 st.cache_data.clear()
@@ -262,63 +243,35 @@ elif selected == "記帳小管家":
             else:
                 st.warning("項目金額要填喔！")
 
-    # --- 2. 顯示與管理區 ---
     st.divider()
-    
-    # 讀取所有資料
     all_records = sheet.get_all_records()
-    
     if all_records:
         df = pd.DataFrame(all_records)
-        
-        # 確保有 '狀態' 這個欄位 (避免舊資料報錯)
         if "狀態" not in df.columns:
-            st.error("⚠️ 試算表缺少『狀態』欄位！請去 Google 試算表新增 F 欄標題為『狀態』")
+            st.error("⚠️ 試算表缺少『狀態』欄位！")
             st.stop()
-
-        # 分成「未結清」和「已結清」
-        unsettled_df = df[df["狀態"] != "已結清"].reset_index() # reset_index 保留原始行號 (為了刪除用)
+        unsettled_df = df[df["狀態"] != "已結清"].reset_index()
         settled_df = df[df["狀態"] == "已結清"]
 
-        # 頁籤切換
-        tab1, tab2 = st.tabs([f"🔥 未結清 ({len(unsettled_df)})", "✅ 歷史紀錄 (已結清)"])
-        
+        tab1, tab2 = st.tabs([f"🔥 未結清 ({len(unsettled_df)})", "✅ 歷史紀錄"])
         with tab1:
             if not unsettled_df.empty:
-                # 顯示表格 (只顯示重要資訊)
-                display_cols = ["日期", "項目", "總金額", "付款人", "對方應付"]
-                st.dataframe(unsettled_df[display_cols], use_container_width=True)
-
-                # --- 自動計算誰欠誰 ---
-                my_debt = unsettled_df[unsettled_df["付款人"] == "男朋友"]["對方應付"].sum() # 男友付，我欠他
-                bf_debt = unsettled_df[unsettled_df["付款人"] == "我"]["對方應付"].sum() # 我付，男友欠我
-                
+                st.dataframe(unsettled_df[["日期", "項目", "總金額", "付款人", "對方應付"]], use_container_width=True)
+                my_debt = unsettled_df[unsettled_df["付款人"] == "男朋友"]["對方應付"].sum()
+                bf_debt = unsettled_df[unsettled_df["付款人"] == "我"]["對方應付"].sum()
                 final_debt = bf_debt - my_debt
+                st.info(f"💡 我欠他 ${my_debt} | 他欠我 ${bf_debt}")
+                if final_debt > 0: st.success(f"👉 男朋友要給妳 ${int(final_debt)}")
+                elif final_debt < 0: st.error(f"👉 妳要給男朋友 ${int(abs(final_debt))}")
+                else: st.success("目前兩不相欠！")
                 
-                st.info(f"💡 目前結算：我欠男友 ${my_debt}，男友欠我 ${bf_debt}")
-                
-                if final_debt > 0:
-                    st.success(f"👉 **結論：男朋友要給妳 ${int(final_debt)}**")
-                elif final_debt < 0:
-                    st.error(f"👉 **結論：妳要給男朋友 ${int(abs(final_debt))}**")
-                else:
-                    st.success("👉 **結論：目前兩不相欠！完美！**")
-
-                # --- 管理功能 (刪除 / 結清) ---
                 st.write("---")
-                st.caption("🔧 管理選單：選一筆資料來操作")
-                
-                # 讓使用者選擇要操作哪一筆 (顯示: 日期-項目-金額)
                 options = unsettled_df.apply(lambda x: f"{x['index']+2}. {x['日期']} - {x['項目']} (${x['總金額']})", axis=1)
-                selected_item = st.selectbox("選擇項目", options)
-                
-                # 解析出行號 (Row Number)
+                selected_item = st.selectbox("選擇結清/刪除項目", options)
                 row_num = int(selected_item.split(".")[0])
-                
                 c1, c2 = st.columns(2)
                 with c1:
                     if st.button("✅ 標記為已結清", use_container_width=True):
-                        # 更新 Google Sheet 的 F 欄 (狀態)
                         sheet.update_cell(row_num, 6, "已結清") 
                         st.success("已結清！")
                         st.cache_data.clear()
@@ -329,16 +282,10 @@ elif selected == "記帳小管家":
                         st.success("已刪除！")
                         st.cache_data.clear()
                         st.rerun()
-
             else:
-                st.info("目前沒有未結清的帳款，太棒了！")
-
+                st.info("沒有未結清的帳款！")
         with tab2:
             st.dataframe(settled_df, use_container_width=True)
-            st.caption("這些是已經結算過的歷史帳務。")
-
-    else:
-        st.info("目前還沒有任何記帳資料喔！")
 
 elif selected == "旅遊地圖":
     st.title("🌍 我們的足跡 (智慧地圖)")
@@ -396,41 +343,28 @@ elif selected == "旅遊地圖":
 
 elif selected == "回憶相簿":
     st.title("📸 我們的精選回憶")
-    
     creds = get_creds()
     client = gspread.authorize(creds)
     try:
         photo_sheet = client.open("OurLoveMoney").worksheet("Photos")
     except:
-        st.error("找不到 'Photos' 分頁，請去試算表新增一個！")
+        st.error("找不到 'Photos' 分頁")
         st.stop()
 
-    # --- 手機上傳專區 ---
     with st.expander("➕ 新增照片 (手機上傳版)", expanded=True):
-        st.write("直接從手機相簿選照片，機器人會自動幫你上傳到 Google Drive！")
-        
-        # 1. 輸入描述
-        p_note = st.text_input("這張照片的故事...")
-        
-        # 2. 上傳按鈕
-        uploaded_file = st.file_uploader("選擇一張照片...", type=['jpg', 'png', 'jpeg'])
-        
-        if uploaded_file is not None:
-            if st.button("開始上傳 & 儲存", type="primary"):
-                if p_note:
-                    with st.spinner('正在把照片傳給機器人...請稍等...'):
-                        # A. 上傳到 Google Drive
-                        image_link = upload_image_to_drive(uploaded_file, uploaded_file.name, FOLDER_ID, creds)
-                        
-                        if image_link:
-                            # B. 儲存連結到試算表
-                            from datetime import datetime
-                            date_str = datetime.now().strftime("%Y-%m-%d")
-                            photo_sheet.append_row([date_str, p_note, image_link])
-                            st.success("🎉 上傳成功！照片已永久保存！")
-                            st.cache_data.clear()
-                else:
-                    st.warning("請先寫一點照片的故事喔！")
+        p_note = st.text_input("照片故事...")
+        uploaded_file = st.file_uploader("選擇照片", type=['jpg', 'png'])
+        if uploaded_file and st.button("開始上傳", type="primary"):
+            if p_note:
+                with st.spinner('上傳中...'):
+                    link = upload_image_to_drive(uploaded_file, uploaded_file.name, FOLDER_ID, creds)
+                    if link:
+                        date_str = datetime.now().strftime("%Y-%m-%d")
+                        photo_sheet.append_row([date_str, p_note, link])
+                        st.success("🎉 上傳成功！")
+                        st.cache_data.clear()
+            else:
+                st.warning("請寫故事！")
 
     st.divider()
     records = photo_sheet.get_all_records()
