@@ -8,6 +8,9 @@ import json
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 from datetime import datetime, date
+from geopy.geocoders import Nominatim # 👈 就是這一行！地圖小幫手在這裡！
+from geopy.extra.rate_limiter import RateLimiter
+
 
 st.set_page_config(page_title="我們的專屬小窩", page_icon="☀️", layout="wide")
 
