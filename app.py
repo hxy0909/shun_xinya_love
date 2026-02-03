@@ -16,10 +16,10 @@ st.set_page_config(page_title="我們的專屬小窩", page_icon="☀️", layou
 
 # ==========================================
 # 👇 【請修改這裡】 1. 貼上妳的 Google Drive 資料夾 ID
-FOLDER_ID = "這裡貼上你的資料夾ID"
+FOLDER_ID = "1sr5pM4dii95MR3n4NIObXiz6pPInUee9?usp=sharing"
 
 # 👇 【請修改這裡】 2. 設定你們的交往紀念日
-LOVE_START_DATE = date(2023, 5, 20)
+LOVE_START_DATE = date(2025, 9, 17)
 # ==========================================
 
 # --- 台灣縣市區域資料庫 ---
