@@ -396,9 +396,9 @@ elif selected == "旅遊地圖":
     # === A. 自動搜尋 ===
     with st.container(border=True):
         st.subheader("📍 標記新地點 (自動搜尋)")
-        place_name = st.text_input("地點名稱", placeholder="想去哪裡？")
+        place_name = st.text_input("地點名稱")
         visit_date = st.date_input("日期", date.today())
-        note = st.text_input("備註", placeholder="那天我們...")
+        note = st.text_input("備註")
         
         if st.button("🔍 搜尋並加入地圖", type="primary", use_container_width=True):
             if place_name:
