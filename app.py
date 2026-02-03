@@ -149,8 +149,85 @@ if selected == "首頁":
     with col2:
         st.metric(label="🎂 距離週年紀念日還有", value=f"{days_countdown} 天")
 
+elif selected == "今天吃什麼":
+    st.title("🍚 吃飯選擇困難救星")
+    creds = get_creds()
+    client = gspread.authorize(creds)
+    try:
+        res_sheet = client.open("OurLoveMoney").worksheet("Restaurants")
+    except:
+        st.error("⚠️ 找不到 'Restaurants' 分頁！")
+        st.stop()
+
+    all_restaurants = res_sheet.get_all_records()
+    st.write("---")
+    c1, c2 = st.columns(2)
+    with c1:
+        st.subheader("📍 哪裡？")
+        existing_cities = list(TAIWAN_DATA.keys())
+        selected_cities = st.multiselect("縣市", options=existing_cities)
+    with c2:
+        st.subheader("🏘️ 地區？")
+        available_districts = []
+        if selected_cities:
+            for city in selected_cities:
+                if city in TAIWAN_DATA: available_districts.extend(TAIWAN_DATA[city])
+        else:
+            available_districts = sorted(list(set([str(r.get('地區', '')) for r in all_restaurants if r.get('地區')])))
+        selected_districts = st.multiselect("地區", options=available_districts)
+
+    c3, c4 = st.columns(2)
+    with c3:
+        st.subheader("💰 預算？")
+        price_options = [1, 2, 3]
+        selected_prices = st.multiselect("價格", options=price_options, default=price_options, format_func=get_price_label)
+    with c4:
+        st.subheader("🍜 類型？")
+        all_types = sorted(list(set(str(r['類型']) for r in all_restaurants))) if all_restaurants else []
+        selected_types = st.multiselect("類型", options=all_types, default=all_types)
+
+    st.write("---")
+    if st.button("幫我們決定！", type="primary", use_container_width=True):
+        candidates = []
+        for r in all_restaurants:
+            if selected_cities and r.get('縣市') not in selected_cities: continue
+            if selected_districts and r.get('地區') not in selected_districts: continue
+            if r['價位'] not in selected_prices: continue
+            if str(r['類型']) not in selected_types: continue
+            candidates.append(r)
+        
+        if candidates:
+            final_choice = random.choice(candidates)
+            st.balloons()
+            st.header(f"✨ 今天就吃：{final_choice['餐廳名稱']} ✨")
+            p_label = get_price_label(final_choice['價位'])
+            st.success(f"📍 {final_choice.get('縣市', '')}{final_choice.get('地區', '')} | {final_choice['類型']} | {p_label}")
+        else:
+            st.warning("🥺 沒找到餐廳... 試著放寬條件？")
+
+    with st.expander("➕ 新增餐廳到口袋名單", expanded=False):
+        st.info("👇 請先在這裡選擇地點")
+        col_city, col_dist = st.columns(2)
+        with col_city:
+            new_city = st.selectbox("縣市", options=list(TAIWAN_DATA.keys()), index=list(TAIWAN_DATA.keys()).index("臺北市"))
+        with col_dist:
+            new_district = st.selectbox("地區", options=TAIWAN_DATA[new_city])
+        with st.form("add_res_form"):
+            new_name = st.text_input("餐廳名稱")
+            col_a, col_b = st.columns(2)
+            with col_a:
+                new_type = st.text_input("類型 (如: 拉麵, 火鍋)")
+            with col_b:
+                new_price = st.selectbox("預算區間", options=[1, 2, 3], format_func=get_price_label)
+            if st.form_submit_button("加入名單"):
+                if new_name and new_type:
+                    res_sheet.append_row([new_name, new_type, new_price, new_city, new_district])
+                    st.success(f"✅ 已加入：{new_city}{new_district} 的 {new_name}")
+                    st.cache_data.clear()
+                    st.rerun()
+
 elif selected == "記帳小管家":
-    st.title("💰 記帳 2.0 (含結算功能)")
+    st.title("💰 記帳管家")
     creds = get_creds()
     client = gspread.authorize(creds)
     try:
