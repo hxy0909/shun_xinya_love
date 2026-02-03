@@ -350,19 +350,17 @@ elif selected == "旅遊地圖":
         st.error("⚠️ 找不到 'TravelMap' 分頁！")
         st.stop()
 
-    # --- 1. 顯示進階地圖 (Pydeck) ---
+    # --- 1. 顯示進階地圖 (修復版) ---
     map_records = map_sheet.get_all_records()
     if map_records:
         df_map = pd.DataFrame(map_records)
         if not df_map.empty and '緯度' in df_map.columns:
             
-            # 準備地圖的中心點 (如果沒資料就預設台灣中心)
             center_lat = df_map['緯度'].mean() if not df_map.empty else 23.5
             center_lon = df_map['經度'].mean() if not df_map.empty else 121.0
 
-            # 設定地圖樣式
             deck = pdk.Deck(
-                map_style='mapbox://styles/mapbox/streets-v11', # 街道圖，通常有當地語言
+                map_style=None, # 👈 關鍵修改：不指定 Mapbox 樣式，讓 Streamlit 自動處理
                 initial_view_state=pdk.ViewState(
                     latitude=center_lat,
                     longitude=center_lon,
@@ -374,13 +372,12 @@ elif selected == "旅遊地圖":
                         'ScatterplotLayer',
                         data=df_map,
                         get_position='[經度, 緯度]',
-                        get_color='[255, 75, 75, 200]', # 紅色半透明
-                        get_radius=2000, # 點的大小 (公尺)
-                        pickable=True, # 允許點擊/懸浮
+                        get_color='[255, 75, 75, 200]',
+                        get_radius=2000,
+                        pickable=True,
                         auto_highlight=True,
                     ),
                 ],
-                # 👇 這裡就是顯示文字的關鍵！
                 tooltip={
                     "html": "<b>{地點}</b><br/>📅 {日期}<br/>📝 {備註}",
                     "style": {
