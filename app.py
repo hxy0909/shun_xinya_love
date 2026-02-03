@@ -15,7 +15,7 @@ import pydeck as pdk # 👈 新增這個強大的地圖工具！
 st.set_page_config(page_title="我們的專屬小窩", page_icon="☀️", layout="wide")
 
 # 👇 請記得把這裡換成妳 Google Drive 的資料夾 ID (那串亂碼)
-FOLDER_ID = "1sr5pM4dii95MR3n4NIObXiz6pPInUee9?usp=sharing"
+FOLDER_ID = "1sr5pM4dii95MR3n4NIObXiz6pPInUee9"
 
 # 👇 【請修改這裡】 2. 設定你們的交往紀念日 (格式：年, 月, 日)
 LOVE_START_DATE = date(2025, 9, 17)
