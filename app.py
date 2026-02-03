@@ -240,10 +240,10 @@ elif selected == "記帳管家":
             payer = st.selectbox("誰先付錢？", ["薪雅", "白白"])
         with col4:
             # 這裡就是妳要的「選擇彼此花了多少」
-            split_mode = st.radio("怎麼分攤？", ["一人一半 (平分)", "輸入各付多少"], horizontal=True)
+            split_mode = st.radio("怎麼分攤？", ["一人一半", "輸入各付多少"], horizontal=True)
 
         debt_amount = 0
-        if split_mode == "一人一半 (平分)":
+        if split_mode == "一人一半":
             debt_amount = total_price / 2
         elif split_mode == "輸入各付多少":
             debt_amount = st.number_input(f"💸 {payer} 先付了 {total_price}，其中對方該付多少？", min_value=0.0, max_value=float(total_price))
@@ -509,7 +509,6 @@ elif selected == "使用說明":
            - 選擇「誰先付錢」。
            - **分攤方式**：
              - **一人一半**：系統自動除以 2。
-             - **幫對方付**：代表這筆錢對方要全額還你。
              - **自定義**：手動輸入「對方該付多少錢」（例如你吃 200，對方吃 500，他先付錢，你在這裡輸入 200）。
         2. **看債務**：切換到「🔥 未結清」頁面，藍色框框會自動算出「誰要給誰多少錢」。
         3. **結帳/刪除**：
