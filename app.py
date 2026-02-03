@@ -149,103 +149,128 @@ if selected == "首頁":
     with col2:
         st.metric(label="🎂 距離週年紀念日還有", value=f"{days_countdown} 天")
 
-elif selected == "今天吃什麼":
-    st.title("🍚 吃飯選擇困難救星")
-
+elif selected == "記帳小管家":
+    st.title("💰 記帳 2.0 (含結算功能)")
     creds = get_creds()
     client = gspread.authorize(creds)
     try:
-        res_sheet = client.open("OurLoveMoney").worksheet("Restaurants")
+        sheet = client.open("OurLoveMoney").sheet1
     except:
-        st.error("⚠️ 找不到 'Restaurants' 分頁！")
+        st.error("找不到試算表，請檢查名稱。")
         st.stop()
 
-    all_restaurants = res_sheet.get_all_records()
-    
-    # --- 篩選器 (升級版：直接使用地圖資料庫) ---
-    st.write("---")
-    c1, c2 = st.columns(2)
-    with c1:
-        st.subheader("📍 哪裡？")
-        # 這裡改成：如果資料庫沒資料，就顯示全部縣市
-        existing_cities = list(TAIWAN_DATA.keys())
-        selected_cities = st.multiselect("縣市", options=existing_cities)
-    with c2:
-        st.subheader("🏘️ 地區？")
-        available_districts = []
-        if selected_cities:
-            # 【關鍵修改】直接從 TAIWAN_DATA 抓取完整地區名單，而不是只看試算表
-            for city in selected_cities:
-                if city in TAIWAN_DATA:
-                    available_districts.extend(TAIWAN_DATA[city])
-        else:
-            # 沒選縣市，顯示資料庫裡所有已有的地區 (避免列表太長)
-            available_districts = sorted(list(set([str(r.get('地區', '')) for r in all_restaurants if r.get('地區')])))
+    # --- 1. 新增記帳區 ---
+    with st.container(border=True):
+        st.subheader("📝 新增一筆")
+        col1, col2 = st.columns([2, 1])
+        with col1:
+            item = st.text_input("消費項目", placeholder="例如: 晚餐、電影")
+        with col2:
+            total_price = st.number_input("總金額", min_value=0, step=10)
             
-        selected_districts = st.multiselect("地區", options=available_districts)
+        col3, col4 = st.columns(2)
+        with col3:
+            payer = st.selectbox("誰先付錢？", ["我", "男朋友"])
+        with col4:
+            # 這裡就是妳要的「選擇彼此花了多少」
+            split_mode = st.radio("怎麼分攤？", ["一人一半 (平分)", "幫對方付 (全額)", "自定義 (輸入對方該付多少)"], horizontal=True)
 
-    c3, c4 = st.columns(2)
-    with c3:
-        st.subheader("💰 預算？")
-        price_options = [1, 2, 3]
-        selected_prices = st.multiselect("價格", options=price_options, default=price_options, format_func=get_price_label)
-    with c4:
-        st.subheader("🍜 類型？")
-        # 這裡還是從資料庫抓，因為類型是你們自己定義的
-        all_types = sorted(list(set(str(r['類型']) for r in all_restaurants))) if all_restaurants else []
-        selected_types = st.multiselect("類型", options=all_types, default=all_types)
-
-    st.write("---")
-    if st.button("幫我們決定！", type="primary", use_container_width=True):
-        if not all_restaurants:
-             st.warning("口袋名單是空的喔！快去下面新增第一家餐廳！")
+        debt_amount = 0
+        if split_mode == "一人一半 (平分)":
+            debt_amount = total_price / 2
+        elif split_mode == "幫對方付 (全額)":
+            debt_amount = total_price
         else:
-            candidates = []
-            for r in all_restaurants:
-                if selected_cities and r.get('縣市') not in selected_cities: continue
-                if selected_districts and r.get('地區') not in selected_districts: continue
-                if r['價位'] not in selected_prices: continue
-                if str(r['類型']) not in selected_types: continue
-                candidates.append(r)
-            
-            if candidates:
-                final_choice = random.choice(candidates)
-                st.balloons()
-                st.header(f"✨ 今天就吃：{final_choice['餐廳名稱']} ✨")
-                p_label = get_price_label(final_choice['價位'])
-                st.success(f"📍 {final_choice.get('縣市', '')}{final_choice.get('地區', '')} | {final_choice['類型']} | {p_label}")
+            debt_amount = st.number_input(f"💸 {payer} 先付了 {total_price}，其中「對方」該付多少？", min_value=0.0, max_value=float(total_price))
+
+        if st.button("上傳雲端", key="add_money", type="primary", use_container_width=True):
+            if item and total_price > 0:
+                date_str = datetime.now().strftime("%Y-%m-%d")
+                # 欄位順序：日期, 項目, 總金額, 付款人, 對方應付, 狀態
+                sheet.append_row([date_str, item, total_price, payer, debt_amount, "未結清"])
+                st.success("✅ 記帳成功！")
+                st.cache_data.clear()
+                st.rerun()
             else:
-                st.warning("🥺 嗚嗚，這個地點還沒有存過餐廳... 趕快去下面新增一家吧！")
+                st.warning("項目金額要填喔！")
 
-    # --- 新增餐廳 (放在表單外，確保連動) ---
-    with st.expander("➕ 新增餐廳到口袋名單", expanded=False):
-        st.write("輸入餐廳資訊，下次就能抽到它！")
+    # --- 2. 顯示與管理區 ---
+    st.divider()
+    
+    # 讀取所有資料
+    all_records = sheet.get_all_records()
+    
+    if all_records:
+        df = pd.DataFrame(all_records)
         
-        st.info("👇 請先在這裡選擇地點")
-        col_city, col_dist = st.columns(2)
-        with col_city:
-            new_city = st.selectbox("縣市", options=list(TAIWAN_DATA.keys()), index=list(TAIWAN_DATA.keys()).index("臺北市"))
-        with col_dist:
-            new_district = st.selectbox("地區", options=TAIWAN_DATA[new_city])
+        # 確保有 '狀態' 這個欄位 (避免舊資料報錯)
+        if "狀態" not in df.columns:
+            st.error("⚠️ 試算表缺少『狀態』欄位！請去 Google 試算表新增 F 欄標題為『狀態』")
+            st.stop()
 
-        with st.form("add_res_form"):
-            new_name = st.text_input("餐廳名稱")
-            col_a, col_b = st.columns(2)
-            with col_a:
-                new_type = st.text_input("類型 (如: 拉麵, 火鍋)")
-            with col_b:
-                new_price = st.selectbox("預算區間", options=[1, 2, 3], format_func=get_price_label)
-            
-            submitted = st.form_submit_button("加入名單")
-            
-            if submitted:
-                if new_name and new_type:
-                    res_sheet.append_row([new_name, new_type, new_price, new_city, new_district])
-                    st.success(f"✅ 已加入：{new_city}{new_district} 的 {new_name}")
-                    st.cache_data.clear()
-                    st.rerun()
+        # 分成「未結清」和「已結清」
+        unsettled_df = df[df["狀態"] != "已結清"].reset_index() # reset_index 保留原始行號 (為了刪除用)
+        settled_df = df[df["狀態"] == "已結清"]
+
+        # 頁籤切換
+        tab1, tab2 = st.tabs([f"🔥 未結清 ({len(unsettled_df)})", "✅ 歷史紀錄 (已結清)"])
+        
+        with tab1:
+            if not unsettled_df.empty:
+                # 顯示表格 (只顯示重要資訊)
+                display_cols = ["日期", "項目", "總金額", "付款人", "對方應付"]
+                st.dataframe(unsettled_df[display_cols], use_container_width=True)
+
+                # --- 自動計算誰欠誰 ---
+                my_debt = unsettled_df[unsettled_df["付款人"] == "男朋友"]["對方應付"].sum() # 男友付，我欠他
+                bf_debt = unsettled_df[unsettled_df["付款人"] == "我"]["對方應付"].sum() # 我付，男友欠我
+                
+                final_debt = bf_debt - my_debt
+                
+                st.info(f"💡 目前結算：我欠男友 ${my_debt}，男友欠我 ${bf_debt}")
+                
+                if final_debt > 0:
+                    st.success(f"👉 **結論：男朋友要給妳 ${int(final_debt)}**")
+                elif final_debt < 0:
+                    st.error(f"👉 **結論：妳要給男朋友 ${int(abs(final_debt))}**")
                 else:
-                    st.warning("名稱和類型都要填喔！")
+                    st.success("👉 **結論：目前兩不相欠！完美！**")
+
+                # --- 管理功能 (刪除 / 結清) ---
+                st.write("---")
+                st.caption("🔧 管理選單：選一筆資料來操作")
+                
+                # 讓使用者選擇要操作哪一筆 (顯示: 日期-項目-金額)
+                options = unsettled_df.apply(lambda x: f"{x['index']+2}. {x['日期']} - {x['項目']} (${x['總金額']})", axis=1)
+                selected_item = st.selectbox("選擇項目", options)
+                
+                # 解析出行號 (Row Number)
+                row_num = int(selected_item.split(".")[0])
+                
+                c1, c2 = st.columns(2)
+                with c1:
+                    if st.button("✅ 標記為已結清", use_container_width=True):
+                        # 更新 Google Sheet 的 F 欄 (狀態)
+                        sheet.update_cell(row_num, 6, "已結清") 
+                        st.success("已結清！")
+                        st.cache_data.clear()
+                        st.rerun()
+                with c2:
+                    if st.button("🗑️ 刪除這筆資料", type="primary", use_container_width=True):
+                        sheet.delete_rows(row_num)
+                        st.success("已刪除！")
+                        st.cache_data.clear()
+                        st.rerun()
+
+            else:
+                st.info("目前沒有未結清的帳款，太棒了！")
+
+        with tab2:
+            st.dataframe(settled_df, use_container_width=True)
+            st.caption("這些是已經結算過的歷史帳務。")
+
+    else:
+        st.info("目前還沒有任何記帳資料喔！")
 
 elif selected == "記帳小管家":
     st.title("💰 雲端記帳本")
