@@ -369,6 +369,10 @@ elif selected == "旅遊地圖":
         st.caption("只要輸入地名 (例如: 大葉大學)，機器人會自動幫妳找座標！")
         
         place_name = st.text_input("地點名稱", placeholder="想去哪裡？")
+        
+        # 👇【新功能】日期選擇器
+        visit_date = st.date_input("日期", date.today())
+        
         note = st.text_input("備註", placeholder="那天我們...")
         
         if st.button("🔍 搜尋並加入地圖", type="primary", use_container_width=True):
@@ -381,7 +385,8 @@ elif selected == "旅遊地圖":
                     if location:
                         lat = location.latitude
                         lon = location.longitude
-                        date_str = datetime.now().strftime("%Y-%m-%d")
+                        # 👇 這裡使用妳選的日期，而不是當下時間
+                        date_str = visit_date.strftime("%Y-%m-%d")
                         
                         map_sheet.append_row([place_name, lat, lon, date_str, note])
                         st.success(f"✅ 找到了！已加入：{place_name} ({lat:.4f}, {lon:.4f})")
