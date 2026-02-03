@@ -131,26 +131,14 @@ if selected == "首頁":
     today = date.today()
     # 1. 在一起天數
     days_together = (today - LOVE_START_DATE).days
-    
-    # 2. 下次紀念日倒數
-    this_year_anniversary = date(today.year, LOVE_START_DATE.month, LOVE_START_DATE.day)
-    if this_year_anniversary < today:
-        # 如果今年的紀念日已經過了，就算明年的
-        next_anniversary = date(today.year + 1, LOVE_START_DATE.month, LOVE_START_DATE.day)
-    else:
-        next_anniversary = this_year_anniversary
-        
-    days_countdown = (next_anniversary - today).days
 
     # --- 顯示數據 (使用卡片樣式) ---
     col1, col2 = st.columns(2)
     with col1:
         st.metric(label="💕 我們已經在一起", value=f"{days_together} 天")
-    with col2:
-        st.metric(label="🎂 距離週年紀念日還有", value=f"{days_countdown} 天")
 
 elif selected == "今天吃什麼":
-    st.title("🍚 吃飯選擇困難救星")
+    st.title("🍔 吃飯選擇困難救星")
     creds = get_creds()
     client = gspread.authorize(creds)
     try:
@@ -163,11 +151,11 @@ elif selected == "今天吃什麼":
     st.write("---")
     c1, c2 = st.columns(2)
     with c1:
-        st.subheader("📍 哪裡？")
+        st.subheader("📍 縣市")
         existing_cities = list(TAIWAN_DATA.keys())
         selected_cities = st.multiselect("縣市", options=existing_cities)
     with c2:
-        st.subheader("🏘️ 地區？")
+        st.subheader("🏘️ 地區")
         available_districts = []
         if selected_cities:
             for city in selected_cities:
@@ -178,11 +166,11 @@ elif selected == "今天吃什麼":
 
     c3, c4 = st.columns(2)
     with c3:
-        st.subheader("💰 預算？")
+        st.subheader("💰 預算")
         price_options = [1, 2, 3]
         selected_prices = st.multiselect("價格", options=price_options, default=price_options, format_func=get_price_label)
     with c4:
-        st.subheader("🍜 類型？")
+        st.subheader("🍜 類型")
         all_types = sorted(list(set(str(r['類型']) for r in all_restaurants))) if all_restaurants else []
         selected_types = st.multiselect("類型", options=all_types, default=all_types)
 
@@ -227,7 +215,7 @@ elif selected == "今天吃什麼":
                     st.rerun()
 
 elif selected == "記帳小管家":
-    st.title("💰 記帳管家")
+    st.title("💰 雲端記帳管家")
     creds = get_creds()
     client = gspread.authorize(creds)
     try:
@@ -349,82 +337,59 @@ elif selected == "記帳小管家":
     else:
         st.info("目前還沒有任何記帳資料喔！")
 
-elif selected == "記帳小管家":
-    st.title("💰 雲端記帳本")
+elif selected == "旅遊地圖":
+    st.title("🌍 我們的足跡 (智慧地圖)")
     creds = get_creds()
     client = gspread.authorize(creds)
     try:
-        sheet = client.open("OurLoveMoney").sheet1
-    except Exception as e:
-        st.error(f"連線失敗，請檢查 Google 試算表名稱是否為 OurLoveMoney。錯誤：{e}")
+        # 記得新增 TravelMap 分頁喔！
+        map_sheet = client.open("OurLoveMoney").worksheet("TravelMap")
+    except:
+        st.error("⚠️ 找不到 'TravelMap' 分頁！請去試算表新增一個，標題：地點、緯度、經度、日期、備註")
         st.stop()
 
+    # --- 1. 顯示地圖 ---
+    map_records = map_sheet.get_all_records()
+    if map_records:
+        df_map = pd.DataFrame(map_records)
+        # Streamlit 地圖需要 'lat' 和 'lon' 欄位
+        if not df_map.empty and '緯度' in df_map.columns:
+            df_map = df_map.rename(columns={'緯度': 'lat', '經度': 'lon'})
+            st.map(df_map)
+    else:
+        st.info("地圖上還是空的，快來標記第一個約會地點吧！👇")
+
+    # --- 2. 新增地點 (手機打字版) ---
+    st.divider()
     with st.container(border=True):
-        col1, col2, col3 = st.columns([2, 1, 1])
-        with col1:
-            item = st.text_input("消費項目")
-        with col2:
-            price = st.number_input("金額", min_value=0, step=10)
-        with col3:
-            payer = st.selectbox("誰付的？", ["薪雅", "白白"])
+        st.subheader("📍 標記新地點")
+        st.caption("只要輸入地名 (例如: 大葉大學)，機器人會自動幫妳找座標！")
         
-        if st.button("上傳雲端", use_container_width=True):
-            if item and price > 0:
-                from datetime import datetime
-                date_str = datetime.now().strftime("%Y-%m-%d")
-                sheet.append_row([date_str, item, price, payer])
-                st.success("✅ 記帳成功！")
-                st.cache_data.clear() # 清除快取以顯示最新資料
+        place_name = st.text_input("地點名稱", placeholder="想去哪裡？")
+        note = st.text_input("備註", placeholder="那天我們...")
+        
+        if st.button("🔍 搜尋並加入地圖", type="primary", use_container_width=True):
+            if place_name:
+                try:
+                    # 使用地圖小幫手找座標
+                    geolocator = Nominatim(user_agent="our_love_map_app_v1")
+                    location = geolocator.geocode(place_name)
+                    
+                    if location:
+                        lat = location.latitude
+                        lon = location.longitude
+                        date_str = datetime.now().strftime("%Y-%m-%d")
+                        
+                        map_sheet.append_row([place_name, lat, lon, date_str, note])
+                        st.success(f"✅ 找到了！已加入：{place_name} ({lat:.4f}, {lon:.4f})")
+                        st.cache_data.clear()
+                        st.rerun()
+                    else:
+                        st.error("🥺 找不到這個地方... 試試看輸入更完整的名稱？(例如加上縣市)")
+                except Exception as e:
+                    st.error(f"發生錯誤：{e}")
             else:
-                st.warning("請輸入項目和金額喔！")
-
-    # 顯示區
-    st.divider()
-    records = sheet.get_all_records()
-    if records:
-        df = pd.DataFrame(records)
-        st.dataframe(df, use_container_width=True)
-        st.metric("目前總花費", f"${df['金額'].sum()}")
-
-elif selected == "旅遊地圖":
-    st.title("🌍 我們的足跡地圖")
-    
-    # 記得要在最上面 import pandas (如果你之前的程式碼已經有 import pandas as pd 則不用重複寫)
-    import pandas as pd 
-
-    # 1. 初始化：如果沒有資料，先給兩個預設地點 (台北101、高雄駁二) 讓地圖不要空白
-    if 'map_data' not in st.session_state:
-        st.session_state.map_data = pd.DataFrame({
-            'lat': [25.0339, 22.6204],  # 緯度
-            'lon': [121.5644, 120.2816] # 經度
-        })
-
-    # 2. 顯示地圖 (這行指令最強大，直接畫出地圖！)
-    st.map(st.session_state.map_data)
-
-    # 3. 新增地點的功能
-    st.divider()
-    st.subheader("📍 標記新地點")
-    
-    with st.expander("教我怎麼找經緯度？"):
-        st.write("1. 打開 Google Maps")
-        st.write("2. 在你想去的地方按「滑鼠右鍵」")
-        st.write("3. 第一個出現的數字串就是經緯度！(點一下就會複製)")
-        st.write("4. 格式通常是：24.1234, 120.5678 (前面是緯度 lat，後面是經度 lon)")
-
-    col1, col2 = st.columns(2)
-    with col1:
-        input_lat = st.number_input("緯度 (Latitude)", format="%.4f", value=24.1446)
-    with col2:
-        input_lon = st.number_input("經度 (Longitude)", format="%.4f", value=120.6839)
-
-    if st.button("加入地圖"):
-        # 建立新地點的資料
-        new_point = pd.DataFrame({'lat': [input_lat], 'lon': [input_lon]})
-        # 把新地點合併到原本的資料中
-        st.session_state.map_data = pd.concat([st.session_state.map_data, new_point], ignore_index=True)
-        st.success("成功標記！往上看地圖多了一個點！")
-        st.rerun() # 重新整理網頁，讓地圖立刻更新
+                st.warning("請輸入地點名稱喔！")
 
 elif selected == "回憶相簿":
     st.title("📸 我們的精選回憶")
