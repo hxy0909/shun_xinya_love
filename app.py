@@ -213,6 +213,40 @@ elif selected == "今天吃什麼":
                 st.success(f"📍 {final_choice.get('縣市', '')}{final_choice.get('地區', '')} | {final_choice['類型']} | {p_label}")
             else:
                 st.warning("🥺 沒找到餐廳... 試著放寬條件？")
+    # --- 新增餐廳 (修改版：把選單移出表單外) ---
+    with st.expander("➕ 新增餐廳到口袋名單", expanded=False):
+        st.write("輸入餐廳資訊，下次就能抽到它！")
+        
+        # 1. 這裡的選單在 Form 外面，所以選縣市會馬上更新地區！
+        st.info("👇 請先在這裡選擇地點")
+        col_city, col_dist = st.columns(2)
+        with col_city:
+            # 預設選台北市
+            new_city = st.selectbox("縣市", options=list(TAIWAN_DATA.keys()), index=list(TAIWAN_DATA.keys()).index("臺北市"))
+        with col_dist:
+            # 這裡的選項會根據 new_city 自動變更
+            new_district = st.selectbox("地區", options=TAIWAN_DATA[new_city])
+
+        # 2. 其他資料填寫 (在 Form 裡面，避免誤觸送出)
+        with st.form("add_res_form"):
+            new_name = st.text_input("餐廳名稱")
+            col_a, col_b = st.columns(2)
+            with col_a:
+                new_type = st.text_input("類型 (如: 拉麵, 火鍋)")
+            with col_b:
+                new_price = st.selectbox("預算區間", options=[1, 2, 3], format_func=get_price_label)
+            
+            submitted = st.form_submit_button("加入名單")
+            
+            if submitted:
+                if new_name and new_type:
+                    # 把外面選好的地點 (new_city, new_district) 一起存進去
+                    res_sheet.append_row([new_name, new_type, new_price, new_city, new_district])
+                    st.success(f"✅ 已加入：{new_city}{new_district} 的 {new_name}")
+                    st.cache_data.clear()
+                    st.rerun() # 重新整理，讓上面的口袋名單更新
+                else:
+                    st.warning("名稱和類型都要填喔！")
 
 elif selected == "記帳小管家":
     st.title("💰 雲端記帳本")
