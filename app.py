@@ -49,8 +49,8 @@ TAIWAN_DATA = {
 with st.sidebar:
     selected = option_menu(
         menu_title="功能選單",
-        options=["首頁", "要吃什麼", "記帳管家", "旅遊地圖", "回憶相簿", "使用說明"],
-        icons=["house", "egg-fried", "currency-dollar", "map", "images", "book"],
+        options=["首頁", "要吃什麼", "去哪裡玩", "記帳管家", "旅遊地圖", "回憶相簿", "使用說明"],
+        icons=["house", "egg-fried", "airplane-engines", "currency-dollar", "map", "images", "book"],
         menu_icon="heart",
         default_index=0,
     )
@@ -215,6 +215,84 @@ elif selected == "要吃什麼":
                     st.success(f"✅ 已加入：{new_city}{new_district} 的 {new_name}")
                     st.cache_data.clear()
                     st.rerun()
+
+elif selected == "去哪裡玩":
+    st.title("🎢 週末去哪玩？")
+    creds = get_creds()
+    client = gspread.authorize(creds)
+    try:
+        # 記得新增 PlayList 分頁！
+        play_sheet = client.open("OurLoveMoney").worksheet("PlayList")
+    except:
+        st.error("⚠️ 找不到 'PlayList' 分頁！請去試算表新增，標題：地點、縣市、類型、備註")
+        st.stop()
+
+    all_places = play_sheet.get_all_records()
+    
+    st.write("---")
+    if not all_places:
+        st.info("目前還沒有景點名單，快來新增第一個想去的地方吧！👇")
+    else:
+        # --- 篩選器 ---
+        c1, c2 = st.columns(2)
+        with c1:
+            st.subheader("🚗 想去哪個縣市？")
+            # 抓取目前資料庫裡有的縣市
+            existing_cities = sorted(list(set([str(r.get('縣市', '')) for r in all_places if r.get('縣市')])))
+            selected_cities = st.multiselect("選擇縣市 (留空代表全台灣)", options=existing_cities)
+        
+        with c2:
+            st.subheader("🎨 想玩什麼類型？")
+            # 自動抓取所有類型
+            all_types = sorted(list(set(str(r['類型']) for r in all_places)))
+            selected_types = st.multiselect("選擇類型 (留空代表都可以)", options=all_types)
+
+        st.write("---")
+        if st.button("🎲 幫我們決定去哪玩！", type="primary", use_container_width=True):
+            candidates = []
+            for r in all_places:
+                # 1. 篩選縣市
+                if selected_cities and r.get('縣市') not in selected_cities:
+                    continue
+                # 2. 篩選類型
+                if selected_types and r.get('類型') not in selected_types:
+                    continue
+                candidates.append(r)
+            
+            if candidates:
+                final_choice = random.choice(candidates)
+                st.balloons()
+                st.markdown(f"## 🎯 決定了！就去：**{final_choice['地點']}**")
+                st.success(f"📍 {final_choice['縣市']} | {final_choice['類型']}")
+                if final_choice.get('備註'):
+                    st.info(f"💡 筆記：{final_choice['備註']}")
+            else:
+                st.warning("🥺 嗚嗚，這個條件下沒有景點... 試著放寬一點？")
+
+    # --- 新增景點功能 ---
+    st.divider()
+    with st.expander("➕ 新增想去的口袋名單", expanded=False):
+        with st.form("add_play_form"):
+            new_place = st.text_input("景點名稱")
+            
+            c_city, c_type = st.columns(2)
+            with c_city:
+                # 使用 TAIWAN_DATA 的縣市列表
+                new_city = st.selectbox("縣市", options=list(TAIWAN_DATA.keys()))
+            with c_type:
+                # 這裡可以讓使用者自己打，或選幾個常用的
+                new_type = st.text_input("類型 (如: 戶外, 室內, 逛街, 樂園)")
+            
+            new_note = st.text_input("備註 (如: 門票價格, 營業時間)")
+            
+            if st.form_submit_button("加入願望清單"):
+                if new_place and new_type:
+                    play_sheet.append_row([new_place, new_city, new_type, new_note])
+                    st.success(f"✅ 已加入願望：{new_city} 的 {new_place}")
+                    st.cache_data.clear()
+                    st.rerun()
+                else:
+                    st.warning("景點名稱和類型都要填喔！")
 
 elif selected == "記帳管家":
     st.title("💰 雲端記帳管家")
@@ -492,7 +570,7 @@ elif selected == "使用說明":
     st.title("📖 網站使用說明書")
     st.write("歡迎使用我們的專屬小窩！這裡記錄了所有功能的操作方法：")
     
-    with st.expander("🍚 要吃什麼 (美食抽籤)"):
+    with st.expander("🍔 要吃什麼 (美食抽籤)"):
         st.write("""
         1. **篩選**：可以選擇「縣市」、「地區」、「預算」和「類型」。
         2. **抽籤**：按下「幫我們決定！」按鈕，系統會從符合條件的口袋名單中隨機選出一家。
@@ -500,6 +578,15 @@ elif selected == "使用說明":
            - 點擊下方的「➕ 新增餐廳到口袋名單」。
            - **重要**：請先在選單上方選擇「縣市」和「地區」，選單會自動連動。
            - 填寫名稱、類型和預算，按下「加入名單」即可。
+        """)
+    
+    with st.expander("🎢 去哪裡玩 (旅遊抽籤)"):
+        st.write("""
+        1. **功能**：專治「不知道去哪玩」。
+        2. **篩選**：選擇想去的「縣市」或想玩的「類型」（戶外/室內/樂園...）。
+        3. **新增**：
+           - 在下方輸入你想去的景點名稱。
+           - 記得選好縣市和類型，方便以後篩選喔！
         """)
         
     with st.expander("💰 記帳管家 (理財工具)"):
