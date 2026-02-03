@@ -17,6 +17,31 @@ FOLDER_ID = "1sr5pM4dii95MR3n4NIObXiz6pPInUee9?usp=sharing"
 # 👇 【請修改這裡】 2. 設定你們的交往紀念日 (格式：年, 月, 日)
 LOVE_START_DATE = date(2025, 9, 17)
 
+TAIWAN_DATA = {
+    "基隆市": ["仁愛區", "信義區", "中正區", "中山區", "安樂區", "暖暖區", "七堵區"],
+    "臺北市": ["中正區", "大同區", "中山區", "松山區", "大安區", "萬華區", "信義區", "士林區", "北投區", "內湖區", "南港區", "文山區"],
+    "新北市": ["萬里區", "金山區", "板橋區", "汐止區", "深坑區", "石碇區", "瑞芳區", "平溪區", "雙溪區", "貢寮區", "新店區", "坪林區", "烏來區", "永和區", "中和區", "土城區", "三峽區", "樹林區", "鶯歌區", "三重區", "新莊區", "泰山區", "林口區", "蘆洲區", "五股區", "八里區", "淡水區", "三芝區", "石門區"],
+    "桃園市": ["中壢區", "平鎮區", "龍潭區", "楊梅區", "新屋區", "觀音區", "桃園區", "龜山區", "八德區", "大溪區", "復興區", "大園區", "蘆竹區"],
+    "新竹市": ["東區", "北區", "香山區"],
+    "新竹縣": ["竹北市", "湖口鄉", "新豐鄉", "新埔鎮", "關西鎮", "芎林鄉", "寶山鄉", "竹東鎮", "五峰鄉", "橫山鄉", "尖石鄉", "北埔鄉", "峨眉鄉"],
+    "苗栗縣": ["竹南鎮", "頭份市", "三灣鄉", "南庄鄉", "獅潭鄉", "後龍鎮", "通霄鎮", "苑裡鎮", "苗栗市", "造橋鄉", "頭屋鄉", "公館鄉", "大湖鄉", "泰安鄉", "銅鑼鄉", "三義鄉", "西湖鄉", "卓蘭鎮"],
+    "臺中市": ["中區", "東區", "南區", "西區", "北區", "北屯區", "西屯區", "南屯區", "太平區", "大里區", "霧峰區", "烏日區", "豐原區", "后里區", "石岡區", "東勢區", "和平區", "新社區", "潭子區", "大雅區", "神岡區", "大肚區", "沙鹿區", "龍井區", "梧棲區", "清水區", "大甲區", "外埔區", "大安區"],
+    "彰化縣": ["彰化市", "芬園鄉", "花壇鄉", "秀水鄉", "鹿港鎮", "福興鄉", "線西鄉", "和美鎮", "伸港鄉", "員林市", "社頭鄉", "永靖鄉", "埔心鄉", "溪湖鎮", "大村鄉", "埔鹽鄉", "田中鎮", "北斗鎮", "田尾鄉", "埤頭鄉", "溪州鄉", "竹塘鄉", "二林鎮", "大城鄉", "芳苑鄉", "二水鄉"],
+    "南投縣": ["南投市", "中寮鄉", "草屯鎮", "國姓鄉", "埔里鎮", "仁愛鄉", "名間鄉", "集集鎮", "水里鄉", "魚池鄉", "信義鄉", "竹山鎮", "鹿谷鄉"],
+    "雲林縣": ["斗南鎮", "大埤鄉", "虎尾鎮", "土庫鎮", "褒忠鄉", "東勢鄉", "臺西鄉", "崙背鄉", "麥寮鄉", "斗六市", "林內鄉", "古坑鄉", "莿桐鄉", "西螺鎮", "二崙鄉", "北港鎮", "水林鄉", "口湖鄉", "四湖鄉", "元長鄉"],
+    "嘉義市": ["東區", "西區"],
+    "嘉義縣": ["番路鄉", "梅山鄉", "竹崎鄉", "阿里山鄉", "中埔鄉", "大埔鄉", "水上鄉", "鹿草鄉", "太保市", "朴子市", "東石鄉", "六腳鄉", "新港鄉", "民雄鄉", "大林鎮", "溪口鄉", "義竹鄉", "布袋鎮"],
+    "臺南市": ["中西區", "東區", "南區", "北區", "安平區", "安南區", "永康區", "歸仁區", "新化區", "左鎮區", "玉井區", "楠西區", "南化區", "仁德區", "關廟區", "龍崎區", "官田區", "麻豆區", "佳里區", "西港區", "七股區", "將軍區", "學甲區", "北門區", "新營區", "後壁區", "白河區", "東山區", "六甲區", "下營區", "柳營區", "鹽水區", "善化區", "大內區", "山上區", "新市區", "安定區"],
+    "高雄市": ["新興區", "前金區", "苓雅區", "鹽埕區", "鼓山區", "旗津區", "前鎮區", "三民區", "楠梓區", "小港區", "左營區", "仁武區", "大社區", "東沙群島", "南沙群島", "岡山區", "路竹區", "阿蓮區", "田寮區", "燕巢區", "橋頭區", "梓官區", "彌陀區", "永安區", "湖內區", "鳳山區", "大寮區", "林園區", "鳥松區", "大樹區", "旗山區", "美濃區", "六龜區", "內門區", "杉林區", "甲仙區", "桃源區", "那瑪夏區", "茂林區", "茄萣區"],
+    "屏東縣": ["屏東市", "三地門鄉", "霧臺鄉", "瑪家鄉", "九如鄉", "里港鄉", "高樹鄉", "鹽埔鄉", "長治鄉", "麟洛鄉", "竹田鄉", "內埔鄉", "萬丹鄉", "潮州鎮", "泰武鄉", "來義鄉", "萬巒鄉", "崁頂鄉", "新埤鄉", "南州鄉", "林邊鄉", "東港鎮", "琉球鄉", "佳冬鄉", "新園鄉", "枋寮鄉", "枋山鄉", "春日鄉", "獅子鄉", "車城鄉", "牡丹鄉", "恆春鎮", "滿州鄉"],
+    "宜蘭縣": ["宜蘭市", "頭城鎮", "礁溪鄉", "壯圍鄉", "員山鄉", "羅東鎮", "三星鄉", "大同鄉", "五結鄉", "冬山鄉", "蘇澳鎮", "南澳鄉"],
+    "花蓮縣": ["花蓮市", "新城鄉", "秀林鄉", "吉安鄉", "壽豐鄉", "鳳林鎮", "光復鄉", "豐濱鄉", "瑞穗鄉", "萬榮鄉", "玉里鎮", "卓溪鄉", "富里鄉"],
+    "臺東縣": ["臺東市", "綠島鄉", "蘭嶼鄉", "延平鄉", "卑南鄉", "鹿野鄉", "關山鎮", "海端鄉", "池上鄉", "東河鄉", "成功鎮", "長濱鄉", "太麻里鄉", "金峰鄉", "大武鄉", "達仁鄉"],
+    "澎湖縣": ["馬公市", "西嶼鄉", "望安鄉", "七美鄉", "白沙鄉", "湖西鄉"],
+    "金門縣": ["金沙鎮", "金湖鎮", "金寧鄉", "金城鎮", "烈嶼鄉", "烏坵鄉"],
+    "連江縣": ["南竿鄉", "北竿鄉", "莒光鄉", "東引鄉"]
+}
+
 # --- 側邊欄 ---
 with st.sidebar:
     selected = option_menu(
@@ -125,7 +150,7 @@ if selected == "首頁":
         st.metric(label="🎂 距離週年紀念日還有", value=f"{days_countdown} 天")
 
 elif selected == "今天吃什麼":
-    st.title("🍔 吃飯選擇困難救星")
+    st.title("🍚 吃飯選擇困難救星")
 
     # 連線到 Restaurants 分頁
     creds = get_creds()
@@ -133,80 +158,127 @@ elif selected == "今天吃什麼":
     try:
         res_sheet = client.open("OurLoveMoney").worksheet("Restaurants")
     except:
-        st.error("找不到 'Restaurants' 分頁，請去 Google 試算表新增一個！")
+        st.error("⚠️ 找不到 'Restaurants' 分頁！請記得去 Google 試算表新增，並檢查標題欄位是否包含：餐廳名稱、類型、價位、縣市、地區")
         st.stop()
 
-    # --- 功能 1: 顯示目前的口袋名單 & 篩選 ---
     all_restaurants = res_sheet.get_all_records()
     
     if not all_restaurants:
         st.warning("目前口袋名單是空的，快用下面的功能新增第一家餐廳吧！")
     else:
-        # 準備資料
-        df_res = pd.DataFrame(all_restaurants)
-        
-        # 篩選器介面
+        # --- 篩選器介面 (升級版) ---
         st.write("---")
-        col1, col2 = st.columns(2)
-        with col1:
+        
+        # 第一排：地點篩選
+        c1, c2 = st.columns(2)
+        with c1:
+            st.subheader("📍 在哪個縣市？")
+            # 抓取目前資料庫裡有的縣市，如果沒有資料就顯示空清單
+            existing_cities = sorted(list(set([str(r.get('縣市', '')) for r in all_restaurants if r.get('縣市')])))
+            # 如果資料庫還是空的，就顯示所有縣市讓使用者選
+            if not existing_cities:
+                existing_cities = list(TAIWAN_DATA.keys())
+                
+            selected_cities = st.multiselect("選擇縣市 (可多選，留空代表全選)", options=existing_cities)
+        
+        with c2:
+            st.subheader("🏘️ 在哪個地區？")
+            # 根據選的縣市，篩選出對應的地區選項
+            available_districts = []
+            if selected_cities:
+                # 只顯示已選縣市的資料庫既有地區
+                for r in all_restaurants:
+                    if r.get('縣市') in selected_cities and r.get('地區'):
+                        available_districts.append(r['地區'])
+                available_districts = sorted(list(set(available_districts)))
+            else:
+                # 沒選縣市，顯示所有有資料的地區
+                available_districts = sorted(list(set([str(r.get('地區', '')) for r in all_restaurants if r.get('地區')])))
+            
+            selected_districts = st.multiselect("選擇地區 (可多選，留空代表全選)", options=available_districts)
+
+        # 第二排：價位與類型
+        c3, c4 = st.columns(2)
+        with c3:
             st.subheader("💰 預算區間？")
             price_options = [1, 2, 3]
             selected_prices = st.multiselect(
-                "選擇價格", 
-                options=price_options, 
-                default=price_options,
-                format_func=get_price_label # 使用新的價格顯示函式
+                "選擇價格 (預設全選)", options=price_options, default=price_options,
+                format_func=get_price_label
             )
-        with col2:
+        with c4:
             st.subheader("🍜 想吃哪一類？")
-            # 確保類型不重複
             all_types = sorted(list(set(str(r['類型']) for r in all_restaurants)))
-            selected_types = st.multiselect("選擇類型", options=all_types, default=all_types)
+            selected_types = st.multiselect("選擇類型 (預設全選)", options=all_types, default=all_types)
 
         # 決定按鈕
         st.write("---")
         if st.button("幫我們決定！", type="primary", use_container_width=True):
             # 篩選邏輯
-            candidates = [
-                r for r in all_restaurants 
-                if r['價位'] in selected_prices and str(r['類型']) in selected_types
-            ]
+            candidates = []
+            for r in all_restaurants:
+                # 1. 篩選縣市 (如果沒選就當作全選)
+                if selected_cities and r.get('縣市') not in selected_cities:
+                    continue
+                # 2. 篩選地區
+                if selected_districts and r.get('地區') not in selected_districts:
+                    continue
+                # 3. 篩選價位
+                if r['價位'] not in selected_prices:
+                    continue
+                # 4. 篩選類型
+                if str(r['類型']) not in selected_types:
+                    continue
+                
+                candidates.append(r)
             
             if candidates:
                 final_choice = random.choice(candidates)
                 st.balloons()
                 st.header(f"✨ 今天就吃：{final_choice['餐廳名稱']} ✨")
                 p_label = get_price_label(final_choice['價位'])
-                st.success(f"類型：{final_choice['類型']} | 預算：{p_label}")
+                st.success(f"📍 地點：{final_choice.get('縣市', '')} {final_choice.get('地區', '')}")
+                st.info(f"類型：{final_choice['類型']} | 預算：{p_label}")
             else:
-                st.warning("沒有符合條件的餐廳，請放寬標準！")
+                st.warning("🥺 嗚嗚，這個條件下沒有餐廳... 試著把地區或條件放寬一點？")
 
-    # --- 功能 2: 手機快速新增餐廳 ---
+    # --- 功能 2: 新增餐廳 (支援連動選單) ---
     with st.expander("➕ 新增餐廳到口袋名單", expanded=False):
         st.write("輸入餐廳資訊，下次就能抽到它！")
         with st.form("add_res_form"):
             new_name = st.text_input("餐廳名稱")
+            
+            # 縣市與地區連動選單
+            # 注意：Streamlit 的 Form 裡面無法做即時連動，所以這裡我們讓使用者分開選，或是用 session_state (比較複雜)。
+            # 為了簡單穩定，我們先用兩個獨立選單，但提供完整的台灣資料。
+            col_city, col_dist = st.columns(2)
+            with col_city:
+                # 預設選台北市，方便一點
+                new_city = st.selectbox("縣市", options=list(TAIWAN_DATA.keys()), index=list(TAIWAN_DATA.keys()).index("臺北市"))
+            with col_dist:
+                # 這裡會根據上面選的縣市，顯示對應的區
+                # (但因為在 Form 裡，按 Submit 前不會重整，所以這裡顯示該縣市的所有區)
+                # 小技巧：我們可以把這個選單移出 form，或者接受表單限制。
+                # 這裡我們先顯示 new_city 的區域 (需按 Enter 或點別處才會更新，Streamlit 特性)
+                new_district = st.selectbox("地區", options=TAIWAN_DATA[new_city])
+
             col_a, col_b = st.columns(2)
             with col_a:
                 new_type = st.text_input("類型 (如: 拉麵, 火鍋)")
             with col_b:
-                # 這裡的選項也改成顯示價格區間
-                new_price = st.selectbox(
-                    "預算區間", 
-                    options=[1, 2, 3], 
-                    format_func=get_price_label
-                )
+                new_price = st.selectbox("預算區間", options=[1, 2, 3], format_func=get_price_label)
             
+            st.caption("💡 小提醒：在表單內切換縣市後，地區選單會自動更新喔！")
             submitted = st.form_submit_button("加入名單")
+            
             if submitted:
                 if new_name and new_type:
-                    res_sheet.append_row([new_name, new_type, new_price])
-                    st.success(f"已加入：{new_name}")
-                    st.cache_data.clear() # 清除快取以更新名單
+                    res_sheet.append_row([new_name, new_type, new_price, new_city, new_district])
+                    st.success(f"已加入：{new_city}{new_district} 的 {new_name}")
+                    st.cache_data.clear()
                     st.rerun()
                 else:
                     st.warning("名稱和類型都要填喔！")
-
 
 elif selected == "記帳小管家":
     st.title("💰 雲端記帳本")
@@ -225,7 +297,7 @@ elif selected == "記帳小管家":
         with col2:
             price = st.number_input("金額", min_value=0, step=10)
         with col3:
-            payer = st.selectbox("誰付的？", ["寶寶", "白白"])
+            payer = st.selectbox("誰付的？", ["薪雅", "白白"])
         
         if st.button("上傳雲端", use_container_width=True):
             if item and price > 0:
