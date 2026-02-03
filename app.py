@@ -139,7 +139,7 @@ if selected == "首頁":
     with col1:
         st.metric(label="💕 我們已經在一起", value=f"{days_together} 天")
 
-elif selected == "今天吃什麼":
+elif selected == "要吃什麼":
     st.title("🍔 吃飯選擇困難救星")
     creds = get_creds()
     client = gspread.authorize(creds)
@@ -216,7 +216,7 @@ elif selected == "今天吃什麼":
                     st.cache_data.clear()
                     st.rerun()
 
-elif selected == "記帳小管家":
+elif selected == "記帳管家":
     st.title("💰 雲端記帳管家")
     creds = get_creds()
     client = gspread.authorize(creds)
