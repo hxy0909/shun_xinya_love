@@ -109,6 +109,7 @@ def upload_image_to_drive(file_obj, filename, folder_id, creds):
         st.error(f"上傳失敗: {e}")
         return None
 
+# --- 價格顯示轉換小工具 (吃飯用) ---
 def get_price_label(price_code):
     # 如果讀到的是文字，嘗試轉成數字，轉不過就回傳原文字
     try:
@@ -125,8 +126,18 @@ def get_price_label(price_code):
     else:
         return str(code)
 
-# --- 頁面內容 ---
+# --- 價格顯示轉換小工具 (旅遊用) ---
+def get_play_price_label(price_code):
+    try:
+        code = int(price_code)
+    except:
+        return str(price_code)
+    if code == 1: return "免費 / 銅板價"
+    elif code == 2: return "百元 (門票/低消)"
+    elif code == 3: return "千元 (樂園/住宿)"
+    else: return str(code)
 
+# --- 頁面內容 ---
 if selected == "首頁":
     st.title("歡迎回家！☀️✨")
     
