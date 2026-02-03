@@ -8,9 +8,9 @@ import json
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 from datetime import datetime, date
-from geopy.geocoders import Nominatim # 👈 就是這一行！地圖小幫手在這裡！
+from geopy.geocoders import Nominatim
 from geopy.extra.rate_limiter import RateLimiter
-
+import pydeck as pdk # 👈 新增這個強大的地圖工具！
 
 st.set_page_config(page_title="我們的專屬小窩", page_icon="☀️", layout="wide")
 
@@ -345,55 +345,80 @@ elif selected == "旅遊地圖":
     creds = get_creds()
     client = gspread.authorize(creds)
     try:
-        # 記得新增 TravelMap 分頁喔！
         map_sheet = client.open("OurLoveMoney").worksheet("TravelMap")
     except:
-        st.error("⚠️ 找不到 'TravelMap' 分頁！請去試算表新增一個，標題：地點、緯度、經度、日期、備註")
+        st.error("⚠️ 找不到 'TravelMap' 分頁！")
         st.stop()
 
-    # --- 1. 顯示地圖 ---
+    # --- 1. 顯示進階地圖 (Pydeck) ---
     map_records = map_sheet.get_all_records()
     if map_records:
         df_map = pd.DataFrame(map_records)
-        # Streamlit 地圖需要 'lat' 和 'lon' 欄位
         if not df_map.empty and '緯度' in df_map.columns:
-            df_map = df_map.rename(columns={'緯度': 'lat', '經度': 'lon'})
-            st.map(df_map)
+            
+            # 準備地圖的中心點 (如果沒資料就預設台灣中心)
+            center_lat = df_map['緯度'].mean() if not df_map.empty else 23.5
+            center_lon = df_map['經度'].mean() if not df_map.empty else 121.0
+
+            # 設定地圖樣式
+            deck = pdk.Deck(
+                map_style='mapbox://styles/mapbox/streets-v11', # 街道圖，通常有當地語言
+                initial_view_state=pdk.ViewState(
+                    latitude=center_lat,
+                    longitude=center_lon,
+                    zoom=7,
+                    pitch=0,
+                ),
+                layers=[
+                    pdk.Layer(
+                        'ScatterplotLayer',
+                        data=df_map,
+                        get_position='[經度, 緯度]',
+                        get_color='[255, 75, 75, 200]', # 紅色半透明
+                        get_radius=2000, # 點的大小 (公尺)
+                        pickable=True, # 允許點擊/懸浮
+                        auto_highlight=True,
+                    ),
+                ],
+                # 👇 這裡就是顯示文字的關鍵！
+                tooltip={
+                    "html": "<b>{地點}</b><br/>📅 {日期}<br/>📝 {備註}",
+                    "style": {
+                        "backgroundColor": "steelblue",
+                        "color": "white"
+                    }
+                }
+            )
+            st.pydeck_chart(deck)
     else:
         st.info("地圖上還是空的，快來標記第一個約會地點吧！👇")
 
-    # --- 2. 新增地點 (手機打字版) ---
+    # --- 2. 新增地點 ---
     st.divider()
     with st.container(border=True):
         st.subheader("📍 標記新地點")
-        st.caption("只要輸入地名 (例如: 大葉大學)，機器人會自動幫妳找座標！")
         
         place_name = st.text_input("地點名稱", placeholder="想去哪裡？")
-        
-        # 👇【新功能】日期選擇器
         visit_date = st.date_input("日期", date.today())
-        
         note = st.text_input("備註", placeholder="那天我們...")
         
         if st.button("🔍 搜尋並加入地圖", type="primary", use_container_width=True):
             if place_name:
                 try:
-                    # 使用地圖小幫手找座標
                     geolocator = Nominatim(user_agent="our_love_map_app_v1")
                     location = geolocator.geocode(place_name)
                     
                     if location:
                         lat = location.latitude
                         lon = location.longitude
-                        # 👇 這裡使用妳選的日期，而不是當下時間
                         date_str = visit_date.strftime("%Y-%m-%d")
                         
                         map_sheet.append_row([place_name, lat, lon, date_str, note])
-                        st.success(f"✅ 找到了！已加入：{place_name} ({lat:.4f}, {lon:.4f})")
+                        st.success(f"✅ 找到了！已加入：{place_name}")
                         st.cache_data.clear()
                         st.rerun()
                     else:
-                        st.error("🥺 找不到這個地方... 試試看輸入更完整的名稱？(例如加上縣市)")
+                        st.error("🥺 找不到這個地方... 試試看輸入更完整的名稱？")
                 except Exception as e:
                     st.error(f"發生錯誤：{e}")
             else:
