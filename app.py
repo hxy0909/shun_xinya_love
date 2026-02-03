@@ -350,7 +350,7 @@ elif selected == "旅遊地圖":
         st.error("⚠️ 找不到 'TravelMap' 分頁！")
         st.stop()
 
-    # --- 1. 顯示進階地圖 (修復版) ---
+    # --- 1. 顯示地圖 ---
     map_records = map_sheet.get_all_records()
     if map_records:
         df_map = pd.DataFrame(map_records)
@@ -360,7 +360,7 @@ elif selected == "旅遊地圖":
             center_lon = df_map['經度'].mean() if not df_map.empty else 121.0
 
             deck = pdk.Deck(
-                map_style=None, # 👈 關鍵修改：不指定 Mapbox 樣式，讓 Streamlit 自動處理
+                map_style=None,
                 initial_view_state=pdk.ViewState(
                     latitude=center_lat,
                     longitude=center_lon,
@@ -390,11 +390,12 @@ elif selected == "旅遊地圖":
     else:
         st.info("地圖上還是空的，快來標記第一個約會地點吧！👇")
 
-    # --- 2. 新增地點 ---
+    # --- 2. 新增地點區 ---
     st.divider()
+    
+    # === A. 自動搜尋 ===
     with st.container(border=True):
-        st.subheader("📍 標記新地點")
-        
+        st.subheader("📍 標記新地點 (自動搜尋)")
         place_name = st.text_input("地點名稱", placeholder="想去哪裡？")
         visit_date = st.date_input("日期", date.today())
         note = st.text_input("備註", placeholder="那天我們...")
@@ -415,9 +416,34 @@ elif selected == "旅遊地圖":
                         st.cache_data.clear()
                         st.rerun()
                     else:
-                        st.error("🥺 找不到這個地方... 試試看輸入更完整的名稱？")
+                        st.error("🥺 找不到這個地方... 試試看下面的手動輸入！")
                 except Exception as e:
                     st.error(f"發生錯誤：{e}")
+            else:
+                st.warning("請輸入地點名稱喔！")
+    
+    # === B. 手動輸入 (新功能) ===
+    st.write("")
+    with st.expander("📍 找不到地點？手動輸入座標", expanded=False):
+        st.info("💡 小撇步：在 Google Maps 上**長按**你想去的地方，搜尋列或下方就會出現一串數字（例如 `24.123, 120.456`），那就是座標！")
+        
+        col_lat, col_lon = st.columns(2)
+        with col_lat:
+            manual_lat = st.number_input("緯度 (Latitude)", value=24.0, format="%.5f")
+        with col_lon:
+            manual_lon = st.number_input("經度 (Longitude)", value=121.0, format="%.5f")
+            
+        manual_place = st.text_input("地點名稱 (手動)", placeholder="這裡叫什麼名字？")
+        manual_date = st.date_input("日期 (手動)", date.today(), key="manual_date")
+        manual_note = st.text_input("備註 (手動)", placeholder="寫點什麼...")
+        
+        if st.button("➕ 手動加入座標", type="primary"):
+            if manual_place:
+                date_str = manual_date.strftime("%Y-%m-%d")
+                map_sheet.append_row([manual_place, manual_lat, manual_lon, date_str, manual_note])
+                st.success(f"✅ 手動加入成功：{manual_place}")
+                st.cache_data.clear()
+                st.rerun()
             else:
                 st.warning("請輸入地點名稱喔！")
 
