@@ -162,41 +162,44 @@ elif selected == "今天吃什麼":
 
     all_restaurants = res_sheet.get_all_records()
     
-    if not all_restaurants:
-        st.warning("目前口袋名單是空的，快用下面的功能新增第一家餐廳吧！")
-    else:
-        # --- 篩選器 ---
-        st.write("---")
-        c1, c2 = st.columns(2)
-        with c1:
-            st.subheader("📍 哪裡？")
-            existing_cities = sorted(list(set([str(r.get('縣市', '')) for r in all_restaurants if r.get('縣市')])))
-            if not existing_cities: existing_cities = list(TAIWAN_DATA.keys())
-            selected_cities = st.multiselect("縣市", options=existing_cities)
-        with c2:
-            st.subheader("🏘️ 地區？")
-            available_districts = []
-            if selected_cities:
-                for r in all_restaurants:
-                    if r.get('縣市') in selected_cities and r.get('地區'):
-                        available_districts.append(r['地區'])
-                available_districts = sorted(list(set(available_districts)))
-            else:
-                available_districts = sorted(list(set([str(r.get('地區', '')) for r in all_restaurants if r.get('地區')])))
-            selected_districts = st.multiselect("地區", options=available_districts)
+    # --- 篩選器 (升級版：直接使用地圖資料庫) ---
+    st.write("---")
+    c1, c2 = st.columns(2)
+    with c1:
+        st.subheader("📍 哪裡？")
+        # 這裡改成：如果資料庫沒資料，就顯示全部縣市
+        existing_cities = list(TAIWAN_DATA.keys())
+        selected_cities = st.multiselect("縣市", options=existing_cities)
+    with c2:
+        st.subheader("🏘️ 地區？")
+        available_districts = []
+        if selected_cities:
+            # 【關鍵修改】直接從 TAIWAN_DATA 抓取完整地區名單，而不是只看試算表
+            for city in selected_cities:
+                if city in TAIWAN_DATA:
+                    available_districts.extend(TAIWAN_DATA[city])
+        else:
+            # 沒選縣市，顯示資料庫裡所有已有的地區 (避免列表太長)
+            available_districts = sorted(list(set([str(r.get('地區', '')) for r in all_restaurants if r.get('地區')])))
+            
+        selected_districts = st.multiselect("地區", options=available_districts)
 
-        c3, c4 = st.columns(2)
-        with c3:
-            st.subheader("💰 預算？")
-            price_options = [1, 2, 3]
-            selected_prices = st.multiselect("價格", options=price_options, default=price_options, format_func=get_price_label)
-        with c4:
-            st.subheader("🍜 類型？")
-            all_types = sorted(list(set(str(r['類型']) for r in all_restaurants)))
-            selected_types = st.multiselect("類型", options=all_types, default=all_types)
+    c3, c4 = st.columns(2)
+    with c3:
+        st.subheader("💰 預算？")
+        price_options = [1, 2, 3]
+        selected_prices = st.multiselect("價格", options=price_options, default=price_options, format_func=get_price_label)
+    with c4:
+        st.subheader("🍜 類型？")
+        # 這裡還是從資料庫抓，因為類型是你們自己定義的
+        all_types = sorted(list(set(str(r['類型']) for r in all_restaurants))) if all_restaurants else []
+        selected_types = st.multiselect("類型", options=all_types, default=all_types)
 
-        st.write("---")
-        if st.button("幫我們決定！", type="primary", use_container_width=True):
+    st.write("---")
+    if st.button("幫我們決定！", type="primary", use_container_width=True):
+        if not all_restaurants:
+             st.warning("口袋名單是空的喔！快去下面新增第一家餐廳！")
+        else:
             candidates = []
             for r in all_restaurants:
                 if selected_cities and r.get('縣市') not in selected_cities: continue
@@ -212,22 +215,19 @@ elif selected == "今天吃什麼":
                 p_label = get_price_label(final_choice['價位'])
                 st.success(f"📍 {final_choice.get('縣市', '')}{final_choice.get('地區', '')} | {final_choice['類型']} | {p_label}")
             else:
-                st.warning("🥺 沒找到餐廳... 試著放寬條件？")
-    # --- 新增餐廳 (修改版：把選單移出表單外) ---
+                st.warning("🥺 嗚嗚，這個地點還沒有存過餐廳... 趕快去下面新增一家吧！")
+
+    # --- 新增餐廳 (放在表單外，確保連動) ---
     with st.expander("➕ 新增餐廳到口袋名單", expanded=False):
         st.write("輸入餐廳資訊，下次就能抽到它！")
         
-        # 1. 這裡的選單在 Form 外面，所以選縣市會馬上更新地區！
         st.info("👇 請先在這裡選擇地點")
         col_city, col_dist = st.columns(2)
         with col_city:
-            # 預設選台北市
             new_city = st.selectbox("縣市", options=list(TAIWAN_DATA.keys()), index=list(TAIWAN_DATA.keys()).index("臺北市"))
         with col_dist:
-            # 這裡的選項會根據 new_city 自動變更
             new_district = st.selectbox("地區", options=TAIWAN_DATA[new_city])
 
-        # 2. 其他資料填寫 (在 Form 裡面，避免誤觸送出)
         with st.form("add_res_form"):
             new_name = st.text_input("餐廳名稱")
             col_a, col_b = st.columns(2)
@@ -240,11 +240,10 @@ elif selected == "今天吃什麼":
             
             if submitted:
                 if new_name and new_type:
-                    # 把外面選好的地點 (new_city, new_district) 一起存進去
                     res_sheet.append_row([new_name, new_type, new_price, new_city, new_district])
                     st.success(f"✅ 已加入：{new_city}{new_district} 的 {new_name}")
                     st.cache_data.clear()
-                    st.rerun() # 重新整理，讓上面的口袋名單更新
+                    st.rerun()
                 else:
                     st.warning("名稱和類型都要填喔！")
 
