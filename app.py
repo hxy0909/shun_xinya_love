@@ -49,7 +49,7 @@ TAIWAN_DATA = {
 with st.sidebar:
     selected = option_menu(
         menu_title="功能選單",
-        options=["首頁", "今天吃什麼", "記帳小管家", "旅遊地圖", "回憶相簿"],
+        options=["首頁", "要吃什麼", "記帳管家", "旅遊地圖", "回憶相簿"],
         icons=["house", "egg-fried", "currency-dollar", "map", "images"],
         menu_icon="heart",
         default_index=0,
@@ -134,7 +134,6 @@ if selected == "首頁":
     today = date.today()
     # 1. 在一起天數
     days_together = (today - LOVE_START_DATE).days
-
     # --- 顯示數據 (使用卡片樣式) ---
     col1, col2 = st.columns(2)
     with col1:
@@ -238,18 +237,16 @@ elif selected == "記帳小管家":
             
         col3, col4 = st.columns(2)
         with col3:
-            payer = st.selectbox("誰先付錢？", ["我", "男朋友"])
+            payer = st.selectbox("誰先付錢？", ["薪雅", "白白"])
         with col4:
             # 這裡就是妳要的「選擇彼此花了多少」
-            split_mode = st.radio("怎麼分攤？", ["一人一半 (平分)", "幫對方付 (全額)", "自定義 (輸入對方該付多少)"], horizontal=True)
+            split_mode = st.radio("怎麼分攤？", ["一人一半 (平分)", "輸入各付多少"], horizontal=True)
 
         debt_amount = 0
         if split_mode == "一人一半 (平分)":
             debt_amount = total_price / 2
-        elif split_mode == "幫對方付 (全額)":
-            debt_amount = total_price
-        else:
-            debt_amount = st.number_input(f"💸 {payer} 先付了 {total_price}，其中「對方」該付多少？", min_value=0.0, max_value=float(total_price))
+        elif split_mode == "輸入各付多少":
+            debt_amount = st.number_input(f"💸 {payer} 先付了 {total_price}，其中對方該付多少？", min_value=0.0, max_value=float(total_price))
 
         if st.button("上傳雲端", key="add_money", type="primary", use_container_width=True):
             if item and total_price > 0:
@@ -290,17 +287,17 @@ elif selected == "記帳小管家":
                 st.dataframe(unsettled_df[display_cols], use_container_width=True)
 
                 # --- 自動計算誰欠誰 ---
-                my_debt = unsettled_df[unsettled_df["付款人"] == "男朋友"]["對方應付"].sum() # 男友付，我欠他
-                bf_debt = unsettled_df[unsettled_df["付款人"] == "我"]["對方應付"].sum() # 我付，男友欠我
+                my_debt = unsettled_df[unsettled_df["付款人"] == "白白"]["對方應付"].sum() # 白白付，我欠他
+                bf_debt = unsettled_df[unsettled_df["付款人"] == "薪雅"]["對方應付"].sum() # 我付，白白欠我
                 
                 final_debt = bf_debt - my_debt
                 
-                st.info(f"💡 目前結算：我欠男友 ${my_debt}，男友欠我 ${bf_debt}")
+                st.info(f"💡 目前結算：我欠白白 ${my_debt}，白白欠我 ${bf_debt}")
                 
                 if final_debt > 0:
-                    st.success(f"👉 **結論：男朋友要給妳 ${int(final_debt)}**")
+                    st.success(f"👉 **結論：白白要給妳 ${int(final_debt)}**")
                 elif final_debt < 0:
-                    st.error(f"👉 **結論：妳要給男朋友 ${int(abs(final_debt))}**")
+                    st.error(f"👉 **結論：妳要給白白 ${int(abs(final_debt))}**")
                 else:
                     st.success("👉 **結論：目前兩不相欠！完美！**")
 
@@ -332,7 +329,6 @@ elif selected == "記帳小管家":
 
             else:
                 st.info("目前沒有未結清的帳款，太棒了！")
-
         with tab2:
             st.dataframe(settled_df, use_container_width=True)
             st.caption("這些是已經結算過的歷史帳務。")
@@ -341,7 +337,7 @@ elif selected == "記帳小管家":
         st.info("目前還沒有任何記帳資料喔！")
 
 elif selected == "旅遊地圖":
-    st.title("🌍 我們的足跡 (智慧地圖)")
+    st.title("🌍 我們的足跡")
     creds = get_creds()
     client = gspread.authorize(creds)
     try:
@@ -433,9 +429,9 @@ elif selected == "旅遊地圖":
         with col_lon:
             manual_lon = st.number_input("經度 (Longitude)", value=121.0, format="%.5f")
             
-        manual_place = st.text_input("地點名稱 (手動)", placeholder="這裡叫什麼名字？")
-        manual_date = st.date_input("日期 (手動)", date.today(), key="manual_date")
-        manual_note = st.text_input("備註 (手動)", placeholder="寫點什麼...")
+        manual_place = st.text_input("地點名稱")
+        manual_date = st.date_input("日期", date.today(), key="manual_date")
+        manual_note = st.text_input("備註")
         
         if st.button("➕ 手動加入座標", type="primary"):
             if manual_place:
@@ -449,7 +445,6 @@ elif selected == "旅遊地圖":
 
 elif selected == "回憶相簿":
     st.title("📸 我們的精選回憶")
-    
     creds = get_creds()
     client = gspread.authorize(creds)
     try:
@@ -459,7 +454,7 @@ elif selected == "回憶相簿":
         st.stop()
 
     # --- 手機上傳專區 ---
-    with st.expander("➕ 新增照片 (手機上傳版)", expanded=True):
+    with st.expander("➕ 新增照片", expanded=True):
         st.write("直接從手機相簿選照片，機器人會自動幫你上傳到 Google Drive！")
         
         # 1. 輸入描述
