@@ -7,7 +7,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 import json
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
-from datetime import date # 新增這一行
+from datetime import datetime, date
 
 st.set_page_config(page_title="我們的專屬小窩", page_icon="☀️", layout="wide")
 
