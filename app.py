@@ -152,13 +152,12 @@ if selected == "首頁":
 elif selected == "今天吃什麼":
     st.title("🍚 吃飯選擇困難救星")
 
-    # 連線到 Restaurants 分頁
     creds = get_creds()
     client = gspread.authorize(creds)
     try:
         res_sheet = client.open("OurLoveMoney").worksheet("Restaurants")
     except:
-        st.error("⚠️ 找不到 'Restaurants' 分頁！請記得去 Google 試算表新增，並檢查標題欄位是否包含：餐廳名稱、類型、價位、縣市、地區")
+        st.error("⚠️ 找不到 'Restaurants' 分頁！")
         st.stop()
 
     all_restaurants = res_sheet.get_all_records()
@@ -166,70 +165,44 @@ elif selected == "今天吃什麼":
     if not all_restaurants:
         st.warning("目前口袋名單是空的，快用下面的功能新增第一家餐廳吧！")
     else:
-        # --- 篩選器介面 (升級版) ---
+        # --- 篩選器 ---
         st.write("---")
-        
-        # 第一排：地點篩選
         c1, c2 = st.columns(2)
         with c1:
-            st.subheader("📍 在哪個縣市？")
-            # 抓取目前資料庫裡有的縣市，如果沒有資料就顯示空清單
+            st.subheader("📍 哪裡？")
             existing_cities = sorted(list(set([str(r.get('縣市', '')) for r in all_restaurants if r.get('縣市')])))
-            # 如果資料庫還是空的，就顯示所有縣市讓使用者選
-            if not existing_cities:
-                existing_cities = list(TAIWAN_DATA.keys())
-                
-            selected_cities = st.multiselect("選擇縣市 (可多選，留空代表全選)", options=existing_cities)
-        
+            if not existing_cities: existing_cities = list(TAIWAN_DATA.keys())
+            selected_cities = st.multiselect("縣市", options=existing_cities)
         with c2:
-            st.subheader("🏘️ 在哪個地區？")
-            # 根據選的縣市，篩選出對應的地區選項
+            st.subheader("🏘️ 地區？")
             available_districts = []
             if selected_cities:
-                # 只顯示已選縣市的資料庫既有地區
                 for r in all_restaurants:
                     if r.get('縣市') in selected_cities and r.get('地區'):
                         available_districts.append(r['地區'])
                 available_districts = sorted(list(set(available_districts)))
             else:
-                # 沒選縣市，顯示所有有資料的地區
                 available_districts = sorted(list(set([str(r.get('地區', '')) for r in all_restaurants if r.get('地區')])))
-            
-            selected_districts = st.multiselect("選擇地區 (可多選，留空代表全選)", options=available_districts)
+            selected_districts = st.multiselect("地區", options=available_districts)
 
-        # 第二排：價位與類型
         c3, c4 = st.columns(2)
         with c3:
-            st.subheader("💰 預算區間？")
+            st.subheader("💰 預算？")
             price_options = [1, 2, 3]
-            selected_prices = st.multiselect(
-                "選擇價格 (預設全選)", options=price_options, default=price_options,
-                format_func=get_price_label
-            )
+            selected_prices = st.multiselect("價格", options=price_options, default=price_options, format_func=get_price_label)
         with c4:
-            st.subheader("🍜 想吃哪一類？")
+            st.subheader("🍜 類型？")
             all_types = sorted(list(set(str(r['類型']) for r in all_restaurants)))
-            selected_types = st.multiselect("選擇類型 (預設全選)", options=all_types, default=all_types)
+            selected_types = st.multiselect("類型", options=all_types, default=all_types)
 
-        # 決定按鈕
         st.write("---")
         if st.button("幫我們決定！", type="primary", use_container_width=True):
-            # 篩選邏輯
             candidates = []
             for r in all_restaurants:
-                # 1. 篩選縣市 (如果沒選就當作全選)
-                if selected_cities and r.get('縣市') not in selected_cities:
-                    continue
-                # 2. 篩選地區
-                if selected_districts and r.get('地區') not in selected_districts:
-                    continue
-                # 3. 篩選價位
-                if r['價位'] not in selected_prices:
-                    continue
-                # 4. 篩選類型
-                if str(r['類型']) not in selected_types:
-                    continue
-                
+                if selected_cities and r.get('縣市') not in selected_cities: continue
+                if selected_districts and r.get('地區') not in selected_districts: continue
+                if r['價位'] not in selected_prices: continue
+                if str(r['類型']) not in selected_types: continue
                 candidates.append(r)
             
             if candidates:
@@ -237,48 +210,9 @@ elif selected == "今天吃什麼":
                 st.balloons()
                 st.header(f"✨ 今天就吃：{final_choice['餐廳名稱']} ✨")
                 p_label = get_price_label(final_choice['價位'])
-                st.success(f"📍 地點：{final_choice.get('縣市', '')} {final_choice.get('地區', '')}")
-                st.info(f"類型：{final_choice['類型']} | 預算：{p_label}")
+                st.success(f"📍 {final_choice.get('縣市', '')}{final_choice.get('地區', '')} | {final_choice['類型']} | {p_label}")
             else:
-                st.warning("🥺 嗚嗚，這個條件下沒有餐廳... 試著把地區或條件放寬一點？")
-
-    # --- 功能 2: 新增餐廳 (支援連動選單) ---
-    with st.expander("➕ 新增餐廳到口袋名單", expanded=False):
-        st.write("輸入餐廳資訊，下次就能抽到它！")
-        with st.form("add_res_form"):
-            new_name = st.text_input("餐廳名稱")
-            
-            # 縣市與地區連動選單
-            # 注意：Streamlit 的 Form 裡面無法做即時連動，所以這裡我們讓使用者分開選，或是用 session_state (比較複雜)。
-            # 為了簡單穩定，我們先用兩個獨立選單，但提供完整的台灣資料。
-            col_city, col_dist = st.columns(2)
-            with col_city:
-                # 預設選台北市，方便一點
-                new_city = st.selectbox("縣市", options=list(TAIWAN_DATA.keys()), index=list(TAIWAN_DATA.keys()).index("臺北市"))
-            with col_dist:
-                # 這裡會根據上面選的縣市，顯示對應的區
-                # (但因為在 Form 裡，按 Submit 前不會重整，所以這裡顯示該縣市的所有區)
-                # 小技巧：我們可以把這個選單移出 form，或者接受表單限制。
-                # 這裡我們先顯示 new_city 的區域 (需按 Enter 或點別處才會更新，Streamlit 特性)
-                new_district = st.selectbox("地區", options=TAIWAN_DATA[new_city])
-
-            col_a, col_b = st.columns(2)
-            with col_a:
-                new_type = st.text_input("類型 (如: 拉麵, 火鍋)")
-            with col_b:
-                new_price = st.selectbox("預算區間", options=[1, 2, 3], format_func=get_price_label)
-            
-            st.caption("💡 小提醒：在表單內切換縣市後，地區選單會自動更新喔！")
-            submitted = st.form_submit_button("加入名單")
-            
-            if submitted:
-                if new_name and new_type:
-                    res_sheet.append_row([new_name, new_type, new_price, new_city, new_district])
-                    st.success(f"已加入：{new_city}{new_district} 的 {new_name}")
-                    st.cache_data.clear()
-                    st.rerun()
-                else:
-                    st.warning("名稱和類型都要填喔！")
+                st.warning("🥺 沒找到餐廳... 試著放寬條件？")
 
 elif selected == "記帳小管家":
     st.title("💰 雲端記帳本")
