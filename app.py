@@ -47,7 +47,7 @@ TAIWAN_DATA = {
 with st.sidebar:
     selected = option_menu(
         menu_title="功能選單",
-        options=["首頁", "要吃什麼", "去哪裡玩", "旅遊計畫書", "記帳管家", "旅遊地圖", "使用說明"],
+        options=["首頁", "要吃什麼", "去哪裡玩", "旅遊計畫", "記帳管家", "旅遊地圖", "使用說明"],
         icons=["house", "egg-fried", "airplane-engines", "journal-bookmark", "currency-dollar", "map", "book"],
         menu_icon="heart",
         default_index=0,
@@ -196,7 +196,7 @@ elif selected == "要吃什麼":
                     st.rerun()
 
 elif selected == "去哪裡玩":
-    st.title("🎢 週末去哪玩？")
+    st.title("🎢 出遊選擇困難救星")
     creds = get_creds()
     client = gspread.authorize(creds)
     try:
