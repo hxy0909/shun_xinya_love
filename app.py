@@ -5,8 +5,6 @@ import random
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import json
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaIoBaseUpload
 from datetime import datetime, date
 from geopy.geocoders import Nominatim
 from geopy.extra.rate_limiter import RateLimiter
@@ -78,36 +76,6 @@ def get_creds():
             st.stop()
             
     return creds
-
-# --- 上傳檔案到 Google Drive 的函式 ---
-def upload_image_to_drive(file_obj, filename, folder_id, creds):
-    try:
-        service = build('drive', 'v3', credentials=creds)
-        
-        file_metadata = {
-            'name': filename,
-            'parents': [folder_id]
-        }
-        
-        media = MediaIoBaseUpload(file_obj, mimetype=file_obj.type)
-        
-        file = service.files().create(
-            body=file_metadata,
-            media_body=media,
-            fields='id, webViewLink'
-        ).execute()
-        
-        service.permissions().create(
-            fileId=file.get('id'),
-            body={'role': 'reader', 'type': 'anyone'}
-        ).execute()
-        
-        file_id = file.get('id')
-        return f"https://drive.google.com/uc?export=view&id={file_id}"
-        
-    except Exception as e:
-        st.error(f"上傳失敗: {e}")
-        return None
 
 # --- 價格顯示轉換小工具 (吃飯用) ---
 def get_price_label(price_code):
@@ -542,51 +510,6 @@ elif selected == "旅遊地圖":
             else:
                 st.warning("請輸入地點名稱喔！")
 
-elif selected == "回憶相簿":
-    st.title("📸 我們的精選回憶")
-    creds = get_creds()
-    client = gspread.authorize(creds)
-    try:
-        photo_sheet = client.open("OurLoveMoney").worksheet("Photos")
-    except:
-        st.error("找不到 'Photos' 分頁，請去試算表新增一個！")
-        st.stop()
-
-    # --- 手機上傳專區 ---
-    with st.expander("➕ 新增照片", expanded=True):
-        st.write("直接從手機相簿選照片，機器人會自動幫你上傳到 Google Drive！")
-        
-        # 1. 輸入描述
-        p_note = st.text_input("這張照片的故事...")
-        
-        # 2. 上傳按鈕
-        uploaded_file = st.file_uploader("選擇一張照片...", type=['jpg', 'png', 'jpeg'])
-        
-        if uploaded_file is not None:
-            if st.button("開始上傳 & 儲存", type="primary"):
-                if p_note:
-                    with st.spinner('正在把照片傳給機器人...請稍等...'):
-                        # A. 上傳到 Google Drive
-                        image_link = upload_image_to_drive(uploaded_file, uploaded_file.name, FOLDER_ID, creds)
-                        
-                        if image_link:
-                            # B. 儲存連結到試算表
-                            from datetime import datetime
-                            date_str = datetime.now().strftime("%Y-%m-%d")
-                            photo_sheet.append_row([date_str, p_note, image_link])
-                            st.success("🎉 上傳成功！照片已永久保存！")
-                            st.cache_data.clear()
-                else:
-                    st.warning("請先寫一點照片的故事喔！")
-
-    st.divider()
-    records = photo_sheet.get_all_records()
-    if records:
-        for row in reversed(records):
-            if row['網址']:
-                st.image(row['網址'], caption=f"{row['日期']} - {row['描述']}", use_container_width=True)
-                st.markdown("---")
-
 elif selected == "使用說明":
     st.title("📖 網站使用說明書")
     st.write("歡迎使用我們的專屬小窩！這裡記錄了所有功能的操作方法：")
@@ -634,11 +557,4 @@ elif selected == "使用說明":
            - 搜尋列或下方會出現一串數字（例如 `24.123, 120.456`）。
            - 點開網站上的「📍 找不到地點？手動輸入座標」，把數字填進去即可。
         3. 查看地圖：滑鼠移到地圖上的紅點，會顯示日期和備註喔！
-        """)
-        
-    with st.expander("📸 回憶相簿 (雲端儲存)"):
-        st.write("""
-        1. 上傳：點擊「Browse files」選擇照片，填寫故事，按上傳。
-        2. 原理：照片會自動上傳到你的 Google Drive，並將連結存入試算表，所以不會消失！
-        3. 注意：如果上傳失敗，請確認 Google Drive 資料夾權限是否正確開啟。
         """)
