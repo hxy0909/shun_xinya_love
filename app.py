@@ -122,8 +122,8 @@ if selected == "首頁":
         st.markdown(
             f"""
             <div style="text-align: center;">
-                <h3 style="color: #666; margin-bottom: 10px;">💕 我們已經在一起</h3>
-                <h1 style="color: #000000; font-size: 60px; margin-top: 0px;">{days_together} 天</h1>
+                <h3 style="color: #000000; margin-bottom: 10px;">💕 我們已經在一起</h3>
+                <h1 style="color: #000000; font-size: 50px; margin-top: 0px;">{days_together} 天</h1>
             </div>
             """, 
             unsafe_allow_html=True
@@ -133,11 +133,9 @@ if selected == "首頁":
     
     col_bgm1, col_bgm2, col_bgm3 = st.columns([1, 2, 1])
     with col_bgm2:
-        st.markdown("<h3 style='text-align: center; color: #666;'>🎵 我們的專屬 BGM</h3>", unsafe_allow_html=True)
-        st.link_button("▶️ 點擊播放我們的歌 (YouTube)", THEME_SONG_URL, use_container_width=True)
+        st.markdown("<h3 style='text-align: center; color: #000000;'>🎵 我們的專屬 BGM</h3>", unsafe_allow_html=True)
+        st.link_button("▶️ 點擊播放我們的歌", THEME_SONG_URL, use_container_width=True)
     
-    st.success("這是我們一起開發的第一個網站！")
-
 elif selected == "要吃什麼":
     st.title("🍔 吃飯選擇困難救星")
     creds = get_creds()
