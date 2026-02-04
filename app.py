@@ -128,16 +128,6 @@ if selected == "首頁":
             """, 
             unsafe_allow_html=True
         )
-    with col2:
-        st.markdown(
-            f"""
-            <div style="text-align: center;">
-                <h3 style="color: #666; margin-bottom: 10px;">🎂 距離週年紀念日</h3>
-                <h1 style="color: #000000; font-size: 60px; margin-top: 0px;">{days_countdown} 天</h1>
-            </div>
-            """, 
-            unsafe_allow_html=True
-        )
     
     st.markdown("---")
     
