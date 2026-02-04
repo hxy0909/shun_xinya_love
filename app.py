@@ -111,31 +111,43 @@ def get_play_price_label(price_code):
 
 # --- 頁面內容 ---
 if selected == "首頁":
-    st.title("歡迎回家！☀️✨")
+    # 👇 [修改] 標題置中
+    st.markdown("<h1 style='text-align: center;'>歡迎回家！☀️✨</h1>", unsafe_allow_html=True)
     st.markdown("---")
+    
     today = date.today()
     days_together = (today - LOVE_START_DATE).days
     this_year_anniversary = date(today.year, LOVE_START_DATE.month, LOVE_START_DATE.day)
 
+    # 👇 [修改] 兩個數字區塊都確保內容置中
     col1, col2 = st.columns(2)
     with col1:
         st.markdown(
             f"""
             <div style="text-align: center;">
                 <h3 style="color: #000000; margin-bottom: 10px;">💕 我們已經在一起</h3>
-                <h1 style="color: #000000; font-size: 50px; margin-top: 0px;">{days_together} 天</h1>
+                <h1 style="color: #000000; font-size: 60px; margin-top: 0px;">{days_together} 天</h1>
             </div>
             """, 
             unsafe_allow_html=True
-        )
-    
+        )    
     st.markdown("---")
     
+    # 👇 [修改] BGM 標題和按鈕也置中
     col_bgm1, col_bgm2, col_bgm3 = st.columns([1, 2, 1])
     with col_bgm2:
         st.markdown("<h3 style='text-align: center; color: #000000;'>🎵 我們的專屬 BGM</h3>", unsafe_allow_html=True)
         st.link_button("▶️ 點擊播放我們的歌", THEME_SONG_URL, use_container_width=True)
     
+    # 👇 [修改] 底部文字也改成置中顯示
+    st.markdown(
+        """
+        <div style="background-color: #d1e7dd; color: #0f5132; padding: 10px; border-radius: 10px; text-align: center; margin-top: 20px;">
+            這是我們一起開發的第一個網站！
+        </div>
+        """,
+        unsafe_allow_html=True
+    )   
 elif selected == "要吃什麼":
     st.title("🍔 吃飯選擇困難救星")
     creds = get_creds()
