@@ -111,15 +111,12 @@ def get_play_price_label(price_code):
 
 # --- 頁面內容 ---
 if selected == "首頁":
-    # 👇 [修改] 標題置中
-    st.markdown("歡迎回家！☀️✨", unsafe_allow_html=True)
+    st.title("歡迎回家！☀️✨")
     st.markdown("---")
-    
     today = date.today()
     days_together = (today - LOVE_START_DATE).days
     this_year_anniversary = date(today.year, LOVE_START_DATE.month, LOVE_START_DATE.day)
 
-    # 👇 [修改] 兩個數字區塊都確保內容置中
     col1, col2 = st.columns(2)
     with col1:
         st.markdown(
@@ -130,10 +127,10 @@ if selected == "首頁":
             </div>
             """, 
             unsafe_allow_html=True
-        )    
+        )
+    
     st.markdown("---")
     
-    # 👇 [修改] BGM 標題和按鈕也置中
     col_bgm1, col_bgm2, col_bgm3 = st.columns([1, 2, 1])
     with col_bgm2:
         st.markdown("<h3 style='text-align: center; color: #000000;'>🎵 我們的專屬 BGM</h3>", unsafe_allow_html=True)
