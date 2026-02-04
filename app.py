@@ -121,9 +121,6 @@ if selected == "首頁":
     with col1:
         st.markdown("<h3 style='text-align: center; color: #666;'>💕 我們已經在一起</h3>", unsafe_allow_html=True)
         st.markdown(f"<h1 style='text-align: center; color: #000000; font-size: 60px;'>{days_together} 天</h1>", unsafe_allow_html=True)
-    with col2:
-        st.markdown("<h3 style='text-align: center; color: #666;'>🎂 距離週年紀念日</h3>", unsafe_allow_html=True)
-        st.markdown(f"<h1 style='text-align: center; color: #000000; font-size: 60px;'>{days_countdown} 天</h1>", unsafe_allow_html=True)
     
     st.markdown("---")
     
