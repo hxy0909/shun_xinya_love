@@ -116,7 +116,7 @@ if selected == "首頁":
     col1, col2 = st.columns(2)
     with col1:
         st.markdown("<h3 style='text-align: center; color: #666;'>💕 我們已經在一起</h3>", unsafe_allow_html=True)
-        st.markdown(f"<h1 style='text-align: center; color: #ff4b4b; font-size: 60px;'>{days_together} 天</h1>", unsafe_allow_html=True)
+        st.markdown(f"<h1 style='text-align: center; color: #666; font-size: 60px;'>{days_together} 天</h1>", unsafe_allow_html=True)
 
 elif selected == "要吃什麼":
     st.title("🍔 吃飯選擇困難救星")
