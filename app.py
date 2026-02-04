@@ -212,13 +212,12 @@ elif selected == "要吃什麼":
 
     # --- 新增餐廳 ---
     with st.expander("➕ 新增餐廳到口袋名單", expanded=False):
-        st.info("👇 請先在這裡選擇地點")
         col_city, col_dist = st.columns(2)
         with col_city:
             new_city = st.selectbox("縣市", options=list(TAIWAN_DATA.keys()), index=list(TAIWAN_DATA.keys()).index("臺北市"))
         with col_dist:
             new_district = st.selectbox("地區", options=TAIWAN_DATA[new_city])
-        with st.form("add_res_form"):
+        
             new_name = st.text_input("餐廳名稱")
             col_a, col_b = st.columns(2)
             with col_a:
