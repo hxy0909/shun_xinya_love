@@ -211,7 +211,8 @@ elif selected == "要吃什麼":
                     res_sheet.append_row([new_name, new_type, new_price, new_city, new_district])
                     st.success(f"✅ 已加入：{new_city}{new_district} 的 {new_name}")
                     st.cache_data.clear()
-                    st.rerun()
+                else:
+                    st.warning("餐廳名稱和類型都要填喔！")
 
 elif selected == "去哪裡玩":
     st.title("🎢 出遊選擇困難救星")
@@ -297,7 +298,6 @@ elif selected == "去哪裡玩":
                     play_sheet.append_row([new_place, new_city, new_type, new_price, new_note])
                     st.success(f"✅ 已加入願望：{new_city} 的 {new_place}")
                     st.cache_data.clear()
-                    st.rerun()
                 else:
                     st.warning("景點名稱和類型都要填喔！")
 
