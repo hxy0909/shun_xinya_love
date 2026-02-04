@@ -18,6 +18,10 @@ FOLDER_ID = "1sr5pM4dii95MR3n4NIObXiz6pPInUee9"
 # 👇 【請修改這裡】 2. 設定你們的交往紀念日 (格式：年, 月, 日)
 LOVE_START_DATE = date(2025, 9, 17)
 
+# 👇 【請修改這裡】 3. 貼上你們想聽的 YouTube 歌曲網址 (例如: Ed Sheeran - Perfect)
+THEME_SONG_URL = "https://youtu.be/in8NNzwFa-s?si=GJlc9xHCFJxvPxF4" 
+
+
 TAIWAN_DATA = {
     "基隆市": ["仁愛區", "信義區", "中正區", "中山區", "安樂區", "暖暖區", "七堵區"],
     "臺北市": ["中正區", "大同區", "中山區", "松山區", "大安區", "萬華區", "信義區", "士林區", "北投區", "內湖區", "南港區", "文山區"],
@@ -107,16 +111,25 @@ def get_play_price_label(price_code):
 
 # --- 頁面內容 ---
 if selected == "首頁":
-    st.title("歡迎回家！☀️✨")
+    st.title("歡迎回家！💑")
     st.markdown("---")
     today = date.today()
     days_together = (today - LOVE_START_DATE).days
     this_year_anniversary = date(today.year, LOVE_START_DATE.month, LOVE_START_DATE.day)
-    # 👇 這裡改用了 CSS 語法來讓字體變大、變色、置中
+
     col1, col2 = st.columns(2)
     with col1:
-        st.markdown("<h3 style='text-align: center; color: #000000;'>💕 我們已經在一起</h3>", unsafe_allow_html=True)
+        st.markdown("<h3 style='text-align: center; color: #666;'>💕 我們已經在一起</h3>", unsafe_allow_html=True)
         st.markdown(f"<h1 style='text-align: center; color: #000000; font-size: 60px;'>{days_together} 天</h1>", unsafe_allow_html=True)
+    with col2:
+        st.markdown("<h3 style='text-align: center; color: #666;'>🎂 距離週年紀念日</h3>", unsafe_allow_html=True)
+        st.markdown(f"<h1 style='text-align: center; color: #000000; font-size: 60px;'>{days_countdown} 天</h1>", unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    # 👇 [新功能] 這裡加入了音樂播放器
+    st.markdown("<h3 style='text-align: center; color: #666;'>🎵 我們的專屬 BGM</h3>", unsafe_allow_html=True)
+    st.video(THEME_SONG_URL)
 
 elif selected == "要吃什麼":
     st.title("🍔 吃飯選擇困難救星")
