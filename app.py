@@ -158,11 +158,11 @@ elif selected == "要吃什麼":
     # --- 篩選區 ---
     c1, c2 = st.columns(2)
     with c1:
-        st.subheader("📍 哪裡？")
+        st.subheader("📍 哪裡")
         existing_cities = list(TAIWAN_DATA.keys())
         selected_cities = st.multiselect("縣市", options=existing_cities)
     with c2:
-        st.subheader("🏘️ 地區？")
+        st.subheader("🏘️ 地區")
         available_districts = []
         if selected_cities:
             for city in selected_cities:
@@ -173,11 +173,11 @@ elif selected == "要吃什麼":
 
     c3, c4 = st.columns(2)
     with c3:
-        st.subheader("💰 預算？")
+        st.subheader("💰 預算")
         price_options = [1, 2, 3]
         selected_prices = st.multiselect("價格", options=price_options, default=price_options, format_func=get_price_label)
     with c4:
-        st.subheader("🍜 類型？")
+        st.subheader("🍜 類型")
         all_types = sorted(list(set(str(r['類型']) for r in all_restaurants))) if all_restaurants else []
         selected_types = st.multiselect("類型", options=all_types, default=all_types)
 
@@ -205,7 +205,7 @@ elif selected == "要吃什麼":
             st.balloons()
             st.header(f"✨ 今天就吃：{final_choice['餐廳名稱']} ✨")
             p_label = get_price_label(final_choice['價位'])
-            is_eaten = "😋 吃過囉" if final_choice.get('是否吃過') == "是" else "🆕 還沒吃過"
+            is_eaten = "😋 吃過囉" if final_choice.get('是否吃過') == "是" else "❌ 還沒吃過"
             st.success(f"📍 {final_choice.get('縣市', '')}{final_choice.get('地區', '')} | {final_choice['類型']} | {p_label} | {is_eaten}")
         else:
             st.warning("🥺 沒找到餐廳... 試著放寬條件？")
@@ -243,34 +243,41 @@ elif selected == "要吃什麼":
         if not all_restaurants:
             st.write("目前沒有餐廳資料")
         else:
-            # 製作選單：顯示 餐廳名稱 (縣市地區) [狀態]
-            # 為了方便程式找資料，我們把 index 也藏在選項裡，或是直接用名稱搜尋
-            # 這裡用一個簡單的方法：列出所有餐廳供選擇
-            # 1. 篩選縣市以縮小範圍
-            edit_city = st.selectbox("篩選縣市 (修改用)", ["全部"] + existing_cities, key="edit_city_filter")
+            # 👇 [修改] 這裡加入了「地區篩選」，讓修改更容易
+            c_filter1, c_filter2 = st.columns(2)
+            with c_filter1:
+                edit_city = st.selectbox("篩選縣市", ["全部"] + existing_cities, key="edit_city_filter")
+            with c_filter2:
+                # 根據選的縣市，顯示對應地區
+                dist_options = ["全部"]
+                if edit_city != "全部" and edit_city in TAIWAN_DATA:
+                    dist_options += TAIWAN_DATA[edit_city]
+                edit_district = st.selectbox("篩選地區", dist_options, key="edit_district_filter")
             
             filtered_list_for_edit = []
             for idx, r in enumerate(all_restaurants):
-                if edit_city == "全部" or r.get('縣市') == edit_city:
-                    # 記錄原始的列號 (index + 2, 因為 gspread 是從 1 開始，且第一列是標題)
+                # 雙重篩選：縣市 + 地區
+                city_match = (edit_city == "全部") or (r.get('縣市') == edit_city)
+                dist_match = (edit_district == "全部") or (r.get('地區') == edit_district)
+
+                if city_match and dist_match:
                     filtered_list_for_edit.append(
                         (idx + 2, f"{r['餐廳名稱']} ({r.get('地區','')}) - [{'吃過' if r.get('是否吃過')=='是' else '沒吃過'}]")
                     )
             
             if filtered_list_for_edit:
                 selected_item_tuple = st.selectbox("選擇要修改的餐廳", filtered_list_for_edit, format_func=lambda x: x[1])
-                target_row = selected_item_tuple[0] # 這是試算表中的列號
+                target_row = selected_item_tuple[0]
                 target_name = selected_item_tuple[1]
 
-                # 切換狀態按鈕
                 c_edit1, c_edit2 = st.columns(2)
                 with c_edit1:
                     if st.button("標記為 ✅ 已吃過"):
-                        res_sheet.update_cell(target_row, 6, "是") # 假設第 6 欄是「是否吃過」
+                        res_sheet.update_cell(target_row, 6, "是")
                         st.success(f"已更新：{target_name} -> 吃過")
                         st.cache_data.clear()
                 with c_edit2:
-                    if st.button("標記為 🆕 沒吃過"):
+                    if st.button("標記為 ❌ 沒吃過"):
                         res_sheet.update_cell(target_row, 6, "否")
                         st.success(f"已更新：{target_name} -> 沒吃過")
                         st.cache_data.clear()
