@@ -107,16 +107,16 @@ def get_play_price_label(price_code):
 
 # --- 頁面內容 ---
 if selected == "首頁":
-    st.title("歡迎回家！☀️✨")
-    
-    # --- 計算天數邏輯 ---
+    st.title("歡迎回家！💑")
+    st.markdown("---")
     today = date.today()
-    # 1. 在一起天數
     days_together = (today - LOVE_START_DATE).days
-    # --- 顯示數據 (使用卡片樣式) ---
+    this_year_anniversary = date(today.year, LOVE_START_DATE.month, LOVE_START_DATE.day)
+    # 👇 這裡改用了 CSS 語法來讓字體變大、變色、置中
     col1, col2 = st.columns(2)
     with col1:
-        st.metric(label="💕 我們已經在一起", value=f"{days_together} 天")
+        st.markdown("<h3 style='text-align: center; color: #666;'>💕 我們已經在一起</h3>", unsafe_allow_html=True)
+        st.markdown(f"<h1 style='text-align: center; color: #ff4b4b; font-size: 60px;'>{days_together} 天</h1>", unsafe_allow_html=True)
 
 elif selected == "要吃什麼":
     st.title("🍔 吃飯選擇困難救星")
@@ -215,17 +215,17 @@ elif selected == "去哪裡玩":
         # --- 篩選器 ---
         c1, c2, c3 = st.columns(3)
         with c1:
-            st.subheader("🚗 哪個縣市？")
+            st.subheader("🚗 縣市")
             existing_cities = sorted(list(set([str(r.get('縣市', '')) for r in all_places if r.get('縣市')])))
             selected_cities = st.multiselect("選擇縣市", options=existing_cities)
         
         with c2:
-            st.subheader("🎨 什麼類型？")
+            st.subheader("🎨 類型")
             all_types = sorted(list(set(str(r['類型']) for r in all_places)))
             selected_types = st.multiselect("選擇類型", options=all_types)
 
         with c3:
-            st.subheader("💰 預算多少？")
+            st.subheader("💰 預算")
             price_options = [1, 2, 3]
             selected_prices = st.multiselect("選擇預算", options=price_options, default=price_options, format_func=get_play_price_label)
 
@@ -283,7 +283,7 @@ elif selected == "去哪裡玩":
                 else:
                     st.warning("景點名稱和類型都要填喔！")
 
-elif selected == "旅遊計畫書":
+elif selected == "旅遊計畫":
     st.title("✈️ 我們的出國計畫書")
     creds = get_creds()
     client = gspread.authorize(creds)
@@ -318,10 +318,10 @@ elif selected == "旅遊計畫書":
     with st.expander("➕ 新增旅遊計畫", expanded=False):
         st.write("把 Notion、Google 文件或 PDF 的雲端連結貼在這裡，方便隨時查看！")
         with st.form("add_plan_form"):
-            new_title = st.text_input("旅遊名稱 (例如: 2026 東京賞櫻)")
-            new_date = st.text_input("日期範圍 (例如: 2026/04/01 - 04/05)")
+            new_title = st.text_input("旅遊名稱")
+            new_date = st.text_input("日期範圍")
             new_link = st.text_input("計畫書連結 (請貼上網址)")
-            new_note = st.text_input("備註 (例如: 記得帶轉接頭)")
+            new_note = st.text_input("備註")
             
             if st.form_submit_button("建立計畫"):
                 if new_title:
@@ -403,19 +403,19 @@ elif selected == "記帳管家":
                 st.dataframe(unsettled_df[display_cols], use_container_width=True)
 
                 # --- 自動計算誰欠誰 ---
-                my_debt = unsettled_df[unsettled_df["付款人"] == "白白"]["對方應付"].sum() # 白白付，我欠他
-                bf_debt = unsettled_df[unsettled_df["付款人"] == "薪雅"]["對方應付"].sum() # 我付，白白欠我
+                my_debt = unsettled_df[unsettled_df["付款人"] == "白白"]["薪雅應付"].sum() # 白白付，薪雅欠他
+                bf_debt = unsettled_df[unsettled_df["付款人"] == "薪雅"]["白白應付"].sum() # 薪雅付，白白欠我
                 
                 final_debt = bf_debt - my_debt
                 
-                st.info(f"💡 目前結算：我欠白白 ${my_debt}，白白欠我 ${bf_debt}")
+                st.info(f"💡 目前結算：薪雅欠白白 ${my_debt}，白白欠薪雅 ${bf_debt}")
                 
                 if final_debt > 0:
-                    st.success(f"👉 **結論：白白要給妳 ${int(final_debt)}**")
+                    st.success(f"👉 **結論：白白要給薪雅 ${int(final_debt)}**")
                 elif final_debt < 0:
-                    st.error(f"👉 **結論：妳要給白白 ${int(abs(final_debt))}**")
+                    st.error(f"👉 **結論：薪雅要給白白 ${int(abs(final_debt))}**")
                 else:
-                    st.success("👉 **結論：目前兩不相欠！完美！**")
+                    st.success("👉 **結論：已結清！完美！**")
 
                 # --- 管理功能 (刪除 / 結清) ---
                 st.write("---")
@@ -580,6 +580,15 @@ elif selected == "使用說明":
         3. 新增：
            - 在下方輸入你想去的景點名稱。
            - 記得選好縣市、類型和預算，方便以後篩選喔！
+        """)
+
+    with st.expander("✈️ 旅遊計畫 (出遊行程)"):
+        st.write("""
+        1. **功能**：集中管理出遊行程表。
+        2. **新增**：
+           - 填寫旅遊名稱和日期。
+           - **關鍵**：在「計畫書連結」欄位貼上妳的 Notion、Google Doc 或雲端硬碟連結。
+        3. **使用**：點擊卡片右邊的按鈕，就能直接跳轉到你的詳細行程表！
         """)
         
     with st.expander("💰 記帳管家 (理財工具)"):
