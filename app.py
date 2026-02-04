@@ -111,7 +111,7 @@ def get_play_price_label(price_code):
 
 # --- 頁面內容 ---
 if selected == "首頁":
-    st.title("歡迎回家！💑")
+    st.title("歡迎回家！☀️✨")
     st.markdown("---")
     today = date.today()
     days_together = (today - LOVE_START_DATE).days
