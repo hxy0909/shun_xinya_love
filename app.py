@@ -47,8 +47,8 @@ TAIWAN_DATA = {
 with st.sidebar:
     selected = option_menu(
         menu_title="功能選單",
-        options=["首頁", "要吃什麼", "去哪裡玩", "記帳管家", "旅遊地圖", "使用說明"],
-        icons=["house", "egg-fried", "airplane-engines", "currency-dollar", "map", "book"],
+        options=["首頁", "要吃什麼", "去哪裡玩", "旅遊計畫書", "記帳管家", "旅遊地圖", "使用說明"],
+        icons=["house", "egg-fried", "airplane-engines", "journal-bookmark", "currency-dollar", "map", "book"],
         menu_icon="heart",
         default_index=0,
     )
@@ -282,6 +282,55 @@ elif selected == "去哪裡玩":
                     st.rerun()
                 else:
                     st.warning("景點名稱和類型都要填喔！")
+
+elif selected == "旅遊計畫書":
+    st.title("✈️ 我們的出國計畫書")
+    creds = get_creds()
+    client = gspread.authorize(creds)
+    try:
+        plan_sheet = client.open("OurLoveMoney").worksheet("TravelPlans")
+    except:
+        st.error("⚠️ 找不到 'TravelPlans' 分頁！請去試算表新增，標題：旅遊名稱、日期、計畫書連結、備註")
+        st.stop()
+
+    # --- 1. 顯示現有的計畫書 ---
+    all_plans = plan_sheet.get_all_records()
+    if all_plans:
+        st.write("這是我們未來的冒險！🌍")
+        for plan in all_plans:
+            with st.container(border=True):
+                c1, c2 = st.columns([3, 1])
+                with c1:
+                    st.subheader(f"🛫 {plan['旅遊名稱']}")
+                    st.caption(f"📅 日期：{plan['日期']}")
+                    if plan.get('備註'):
+                        st.info(f"💡 {plan['備註']}")
+                with c2:
+                    if plan.get('計畫書連結'):
+                        st.link_button("📄 查看詳細行程", plan['計畫書連結'], use_container_width=True)
+                    else:
+                        st.warning("尚未上傳連結")
+    else:
+        st.info("目前還沒有旅遊計畫，快來建立第一個吧！👇")
+
+    # --- 2. 新增計畫功能 ---
+    st.divider()
+    with st.expander("➕ 新增旅遊計畫", expanded=False):
+        st.write("把 Notion、Google 文件或 PDF 的雲端連結貼在這裡，方便隨時查看！")
+        with st.form("add_plan_form"):
+            new_title = st.text_input("旅遊名稱 (例如: 2026 東京賞櫻)")
+            new_date = st.text_input("日期範圍 (例如: 2026/04/01 - 04/05)")
+            new_link = st.text_input("計畫書連結 (請貼上網址)")
+            new_note = st.text_input("備註 (例如: 記得帶轉接頭)")
+            
+            if st.form_submit_button("建立計畫"):
+                if new_title:
+                    plan_sheet.append_row([new_title, new_date, new_link, new_note])
+                    st.success(f"✅ 已建立計畫：{new_title}")
+                    st.cache_data.clear()
+                    st.rerun()
+                else:
+                    st.warning("請至少輸入旅遊名稱喔！")
 
 elif selected == "記帳管家":
     st.title("💰 雲端記帳管家")
