@@ -147,14 +147,22 @@ elif selected == "要吃什麼":
         st.stop()
 
     all_restaurants = res_sheet.get_all_records()
+    
+    # 確保資料都有「是否吃過」這個欄位，如果沒有就補上空字串
+    for r in all_restaurants:
+        if '是否吃過' not in r:
+            r['是否吃過'] = ""
+
     st.write("---")
+    
+    # --- 篩選區 ---
     c1, c2 = st.columns(2)
     with c1:
-        st.subheader("📍 縣市")
+        st.subheader("📍 哪裡？")
         existing_cities = list(TAIWAN_DATA.keys())
         selected_cities = st.multiselect("縣市", options=existing_cities)
     with c2:
-        st.subheader("🏘️ 地區")
+        st.subheader("🏘️ 地區？")
         available_districts = []
         if selected_cities:
             for city in selected_cities:
@@ -165,15 +173,19 @@ elif selected == "要吃什麼":
 
     c3, c4 = st.columns(2)
     with c3:
-        st.subheader("💰 預算")
+        st.subheader("💰 預算？")
         price_options = [1, 2, 3]
         selected_prices = st.multiselect("價格", options=price_options, default=price_options, format_func=get_price_label)
     with c4:
-        st.subheader("🍜 類型")
+        st.subheader("🍜 類型？")
         all_types = sorted(list(set(str(r['類型']) for r in all_restaurants))) if all_restaurants else []
         selected_types = st.multiselect("類型", options=all_types, default=all_types)
 
     st.write("---")
+    
+    # 👇 [新功能] 抽籤過濾器
+    only_not_eaten = st.checkbox("只抽「沒吃過」的餐廳", value=False)
+
     if st.button("幫我們決定！", type="primary", use_container_width=True):
         candidates = []
         for r in all_restaurants:
@@ -181,6 +193,11 @@ elif selected == "要吃什麼":
             if selected_districts and r.get('地區') not in selected_districts: continue
             if r['價位'] not in selected_prices: continue
             if str(r['類型']) not in selected_types: continue
+            
+            # 👇 篩選吃過沒
+            if only_not_eaten and r.get('是否吃過') == "是":
+                continue
+                
             candidates.append(r)
         
         if candidates:
@@ -188,10 +205,12 @@ elif selected == "要吃什麼":
             st.balloons()
             st.header(f"✨ 今天就吃：{final_choice['餐廳名稱']} ✨")
             p_label = get_price_label(final_choice['價位'])
-            st.success(f"📍 {final_choice.get('縣市', '')}{final_choice.get('地區', '')} | {final_choice['類型']} | {p_label}")
+            is_eaten = "😋 吃過囉" if final_choice.get('是否吃過') == "是" else "🆕 還沒吃過"
+            st.success(f"📍 {final_choice.get('縣市', '')}{final_choice.get('地區', '')} | {final_choice['類型']} | {p_label} | {is_eaten}")
         else:
             st.warning("🥺 沒找到餐廳... 試著放寬條件？")
 
+    # --- 新增餐廳 ---
     with st.expander("➕ 新增餐廳到口袋名單", expanded=False):
         st.info("👇 請先在這裡選擇地點")
         col_city, col_dist = st.columns(2)
@@ -206,13 +225,74 @@ elif selected == "要吃什麼":
                 new_type = st.text_input("類型 (如: 拉麵, 火鍋)")
             with col_b:
                 new_price = st.selectbox("預算區間", options=[1, 2, 3], format_func=get_price_label)
+            
+            # 👇 [新功能] 新增時可選狀態
+            new_eaten = st.checkbox("這家已經吃過了嗎？")
+            eaten_status = "是" if new_eaten else "否"
+
             if st.form_submit_button("加入名單"):
                 if new_name and new_type:
-                    res_sheet.append_row([new_name, new_type, new_price, new_city, new_district])
+                    res_sheet.append_row([new_name, new_type, new_price, new_city, new_district, eaten_status])
                     st.success(f"✅ 已加入：{new_city}{new_district} 的 {new_name}")
                     st.cache_data.clear()
                 else:
                     st.warning("餐廳名稱和類型都要填喔！")
+
+    # --- [新功能] 修改餐廳狀態 ---
+    with st.expander("📝 修改餐廳狀態 (吃過/沒吃過)", expanded=False):
+        if not all_restaurants:
+            st.write("目前沒有餐廳資料")
+        else:
+            # 製作選單：顯示 餐廳名稱 (縣市地區) [狀態]
+            # 為了方便程式找資料，我們把 index 也藏在選項裡，或是直接用名稱搜尋
+            # 這裡用一個簡單的方法：列出所有餐廳供選擇
+            # 1. 篩選縣市以縮小範圍
+            edit_city = st.selectbox("篩選縣市 (修改用)", ["全部"] + existing_cities, key="edit_city_filter")
+            
+            filtered_list_for_edit = []
+            for idx, r in enumerate(all_restaurants):
+                if edit_city == "全部" or r.get('縣市') == edit_city:
+                    # 記錄原始的列號 (index + 2, 因為 gspread 是從 1 開始，且第一列是標題)
+                    filtered_list_for_edit.append(
+                        (idx + 2, f"{r['餐廳名稱']} ({r.get('地區','')}) - [{'吃過' if r.get('是否吃過')=='是' else '沒吃過'}]")
+                    )
+            
+            if filtered_list_for_edit:
+                selected_item_tuple = st.selectbox("選擇要修改的餐廳", filtered_list_for_edit, format_func=lambda x: x[1])
+                target_row = selected_item_tuple[0] # 這是試算表中的列號
+                target_name = selected_item_tuple[1]
+
+                # 切換狀態按鈕
+                c_edit1, c_edit2 = st.columns(2)
+                with c_edit1:
+                    if st.button("標記為 ✅ 已吃過"):
+                        res_sheet.update_cell(target_row, 6, "是") # 假設第 6 欄是「是否吃過」
+                        st.success(f"已更新：{target_name} -> 吃過")
+                        st.cache_data.clear()
+                with c_edit2:
+                    if st.button("標記為 🆕 沒吃過"):
+                        res_sheet.update_cell(target_row, 6, "否")
+                        st.success(f"已更新：{target_name} -> 沒吃過")
+                        st.cache_data.clear()
+            else:
+                st.info("沒有符合條件的餐廳")
+
+    # --- [新功能] 刪除餐廳 ---
+    with st.expander("🗑️ 刪除餐廳", expanded=False):
+        if not all_restaurants:
+            st.write("目前沒有餐廳資料")
+        else:
+            # 顯示所有餐廳供選擇刪除
+            delete_options = []
+            for idx, r in enumerate(all_restaurants):
+                delete_options.append((idx + 2, f"{r['餐廳名稱']} ({r.get('地區','')})"))
+
+            selected_delete = st.selectbox("選擇要刪除的餐廳", delete_options, format_func=lambda x: x[1])
+            if st.button("🗑️ 刪除選定的餐廳"):
+                row_to_delete = selected_delete[0]
+                res_sheet.delete_rows(row_to_delete)
+                st.success(f"✅ 已刪除：{selected_delete[1]}")
+                st.cache_data.clear()
 
 elif selected == "去哪裡玩":
     st.title("🎢 出遊選擇困難救星")
