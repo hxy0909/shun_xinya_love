@@ -508,8 +508,8 @@ elif selected == "記帳管家":
                 st.dataframe(unsettled_df[display_cols], use_container_width=True)
 
                 # --- 自動計算誰欠誰 ---
-                my_debt = unsettled_df[unsettled_df["付款人"] == "白白"]["薪雅應付"].sum() # 白白付，薪雅欠他
-                bf_debt = unsettled_df[unsettled_df["付款人"] == "薪雅"]["白白應付"].sum() # 薪雅付，白白欠我
+                my_debt = unsettled_df[unsettled_df["付款人"] == "白白"]["對方應付"].sum() # 白白付，薪雅欠他
+                bf_debt = unsettled_df[unsettled_df["付款人"] == "薪雅"]["對方應付"].sum() # 薪雅付，白白欠我
                 
                 final_debt = bf_debt - my_debt
                 
