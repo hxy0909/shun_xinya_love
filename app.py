@@ -136,8 +136,8 @@ if selected == "首頁":
         st.markdown("<h3 style='text-align: center; color: #000000;'>🎵 我們的專屬 BGM</h3>", unsafe_allow_html=True)
         st.link_button("▶️ 點擊播放我們的歌", THEME_SONG_URL, use_container_width=True)
     
-elif selected == "要吃什麼":
-    st.title("🍔 吃飯選擇困難救星")
+elif selected == "要吃什麼": 
+    st.title("🍚 吃飯選擇困難救星")
     creds = get_creds()
     client = gspread.authorize(creds)
     try:
@@ -147,22 +147,19 @@ elif selected == "要吃什麼":
         st.stop()
 
     all_restaurants = res_sheet.get_all_records()
-    
-    # 確保資料都有「是否吃過」這個欄位，如果沒有就補上空字串
     for r in all_restaurants:
-        if '是否吃過' not in r:
-            r['是否吃過'] = ""
+        if '是否吃過' not in r: r['是否吃過'] = ""
 
     st.write("---")
     
-    # --- 篩選區 ---
+    # --- 抽籤篩選 ---
     c1, c2 = st.columns(2)
     with c1:
-        st.subheader("📍 哪裡")
+        st.subheader("📍 哪裡？")
         existing_cities = list(TAIWAN_DATA.keys())
         selected_cities = st.multiselect("縣市", options=existing_cities)
     with c2:
-        st.subheader("🏘️ 地區")
+        st.subheader("🏘️ 地區？")
         available_districts = []
         if selected_cities:
             for city in selected_cities:
@@ -173,17 +170,15 @@ elif selected == "要吃什麼":
 
     c3, c4 = st.columns(2)
     with c3:
-        st.subheader("💰 預算")
+        st.subheader("💰 預算？")
         price_options = [1, 2, 3]
         selected_prices = st.multiselect("價格", options=price_options, default=price_options, format_func=get_price_label)
     with c4:
-        st.subheader("🍜 類型")
+        st.subheader("🍜 類型？")
         all_types = sorted(list(set(str(r['類型']) for r in all_restaurants))) if all_restaurants else []
         selected_types = st.multiselect("類型", options=all_types, default=all_types)
 
     st.write("---")
-    
-    # 👇 [新功能] 抽籤過濾器
     only_not_eaten = st.checkbox("只抽「沒吃過」的餐廳", value=False)
 
     if st.button("幫我們決定！", type="primary", use_container_width=True):
@@ -193,11 +188,7 @@ elif selected == "要吃什麼":
             if selected_districts and r.get('地區') not in selected_districts: continue
             if r['價位'] not in selected_prices: continue
             if str(r['類型']) not in selected_types: continue
-            
-            # 👇 篩選吃過沒
-            if only_not_eaten and r.get('是否吃過') == "是":
-                continue
-                
+            if only_not_eaten and r.get('是否吃過') == "是": continue
             candidates.append(r)
         
         if candidates:
@@ -205,7 +196,7 @@ elif selected == "要吃什麼":
             st.balloons()
             st.header(f"✨ 今天就吃：{final_choice['餐廳名稱']} ✨")
             p_label = get_price_label(final_choice['價位'])
-            is_eaten = "😋 吃過囉" if final_choice.get('是否吃過') == "是" else "❌ 還沒吃過"
+            is_eaten = "😋 吃過囉" if final_choice.get('是否吃過') == "是" else "🆕 還沒吃過"
             st.success(f"📍 {final_choice.get('縣市', '')}{final_choice.get('地區', '')} | {final_choice['類型']} | {p_label} | {is_eaten}")
         else:
             st.warning("🥺 沒找到餐廳... 試著放寬條件？")
@@ -213,50 +204,65 @@ elif selected == "要吃什麼":
     # --- 新增餐廳 ---
     with st.expander("➕ 新增餐廳到口袋名單", expanded=False):
         st.info("👇 請先在這裡選擇地點")
+        
+        # 取得目前已有的所有類型，方便等等做選單
+        existing_types = sorted(list(set([str(r.get('類型', '')) for r in all_restaurants if r.get('類型')])))
+        
         col_city, col_dist = st.columns(2)
         with col_city:
             new_city = st.selectbox("縣市", options=list(TAIWAN_DATA.keys()), index=list(TAIWAN_DATA.keys()).index("臺北市"))
         with col_dist:
             new_district = st.selectbox("地區", options=TAIWAN_DATA[new_city])
+            
         with st.form("add_res_form"):
             new_name = st.text_input("餐廳名稱")
             col_a, col_b = st.columns(2)
+            
             with col_a:
-                new_type = st.text_input("類型 (如: 拉麵, 火鍋)")
+                # 👇 [修改] 這裡改成「選單 + 手動輸入」
+                type_options = ["🆕 自行輸入"] + existing_types
+                selected_type = st.selectbox("類型", options=type_options)
+                new_manual_type = st.text_input("輸入新類型 (若上方選擇'自行輸入'才需填寫)")
+            
             with col_b:
                 new_price = st.selectbox("預算區間", options=[1, 2, 3], format_func=get_price_label)
+                # 為了版面好看，加一點空白
+                st.write("")
+                st.write("")
             
-            # 👇 [新功能] 新增時可選狀態
             new_eaten = st.checkbox("這家已經吃過了嗎？")
             eaten_status = "是" if new_eaten else "否"
 
             if st.form_submit_button("加入名單"):
-                if new_name and new_type:
-                    res_sheet.append_row([new_name, new_type, new_price, new_city, new_district, eaten_status])
+                # 判斷要用哪個類型
+                if selected_type == "🆕 自行輸入":
+                    final_type = new_manual_type
+                else:
+                    final_type = selected_type
+                
+                if new_name and final_type:
+                    res_sheet.append_row([new_name, final_type, new_price, new_city, new_district, eaten_status])
                     st.success(f"✅ 已加入：{new_city}{new_district} 的 {new_name}")
                     st.cache_data.clear()
                 else:
                     st.warning("餐廳名稱和類型都要填喔！")
 
-    # --- [新功能] 修改餐廳狀態 ---
+    # --- 修改餐廳狀態 ---
     with st.expander("📝 修改餐廳狀態 (吃過/沒吃過)", expanded=False):
         if not all_restaurants:
             st.write("目前沒有餐廳資料")
         else:
-            # 👇 [修改] 這裡加入了「地區篩選」，讓修改更容易
             c_filter1, c_filter2 = st.columns(2)
             with c_filter1:
-                edit_city = st.selectbox("篩選縣市", ["全部"] + existing_cities, key="edit_city_filter")
+                edit_city = st.selectbox("篩選縣市 (修改用)", ["全部"] + existing_cities, key="edit_city_filter")
             with c_filter2:
-                # 根據選的縣市，顯示對應地區
                 dist_options = ["全部"]
                 if edit_city != "全部" and edit_city in TAIWAN_DATA:
                     dist_options += TAIWAN_DATA[edit_city]
-                edit_district = st.selectbox("篩選地區", dist_options, key="edit_district_filter")
+                edit_district = st.selectbox("篩選地區 (修改用)", dist_options, key="edit_district_filter")
             
             filtered_list_for_edit = []
             for idx, r in enumerate(all_restaurants):
-                # 雙重篩選：縣市 + 地區
                 city_match = (edit_city == "全部") or (r.get('縣市') == edit_city)
                 dist_match = (edit_district == "全部") or (r.get('地區') == edit_district)
 
@@ -277,29 +283,42 @@ elif selected == "要吃什麼":
                         st.success(f"已更新：{target_name} -> 吃過")
                         st.cache_data.clear()
                 with c_edit2:
-                    if st.button("標記為 ❌ 沒吃過"):
+                    if st.button("標記為 🆕 沒吃過"):
                         res_sheet.update_cell(target_row, 6, "否")
                         st.success(f"已更新：{target_name} -> 沒吃過")
                         st.cache_data.clear()
             else:
                 st.info("沒有符合條件的餐廳")
-
-    # --- [新功能] 刪除餐廳 ---
+    
+    # --- 刪除餐廳 ---
     with st.expander("🗑️ 刪除餐廳", expanded=False):
         if not all_restaurants:
-            st.write("目前沒有餐廳資料")
+            st.write("沒東西可以刪")
         else:
-            # 顯示所有餐廳供選擇刪除
-            delete_options = []
-            for idx, r in enumerate(all_restaurants):
-                delete_options.append((idx + 2, f"{r['餐廳名稱']} ({r.get('地區','')})"))
+            c_del1, c_del2 = st.columns(2)
+            with c_del1:
+                del_city = st.selectbox("篩選縣市 (刪除用)", ["全部"] + existing_cities, key="del_city_filter")
+            with c_del2:
+                del_dist_options = ["全部"]
+                if del_city != "全部" and del_city in TAIWAN_DATA:
+                    del_dist_options += TAIWAN_DATA[del_city]
+                del_district = st.selectbox("篩選地區 (刪除用)", del_dist_options, key="del_district_filter")
 
-            selected_delete = st.selectbox("選擇要刪除的餐廳", delete_options, format_func=lambda x: x[1])
-            if st.button("🗑️ 刪除選定的餐廳"):
-                row_to_delete = selected_delete[0]
-                res_sheet.delete_rows(row_to_delete)
-                st.success(f"✅ 已刪除：{selected_delete[1]}")
-                st.cache_data.clear()
+            del_list = []
+            for idx, r in enumerate(all_restaurants):
+                city_match = (del_city == "全部") or (r.get('縣市') == del_city)
+                dist_match = (del_district == "全部") or (r.get('地區') == del_district)
+                if city_match and dist_match:
+                    del_list.append((idx + 2, f"{r['餐廳名稱']} ({r.get('地區','')})"))
+
+            if del_list:
+                del_item = st.selectbox("選擇要刪除的餐廳", del_list, format_func=lambda x: x[1], key="del_select")
+                if st.button(f"確定刪除 {del_item[1]} 嗎？", type="primary"):
+                    res_sheet.delete_rows(del_item[0])
+                    st.success("已刪除！")
+                    st.cache_data.clear()
+            else:
+                st.info("沒找到餐廳")
 
 elif selected == "去哪裡玩":
     st.title("🎢 出遊選擇困難救星")
