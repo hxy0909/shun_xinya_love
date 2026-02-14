@@ -137,7 +137,7 @@ if selected == "首頁":
         st.link_button("▶️ 點擊播放我們的歌", THEME_SONG_URL, use_container_width=True)
     
 elif selected == "要吃什麼": 
-    st.title("🍚 吃飯選擇困難救星")
+    st.title("🍔 吃飯選擇困難救星")
     creds = get_creds()
     client = gspread.authorize(creds)
     try:
@@ -155,11 +155,11 @@ elif selected == "要吃什麼":
     # --- 抽籤篩選 ---
     c1, c2 = st.columns(2)
     with c1:
-        st.subheader("📍 哪裡？")
+        st.subheader("📍 哪裡")
         existing_cities = list(TAIWAN_DATA.keys())
         selected_cities = st.multiselect("縣市", options=existing_cities)
     with c2:
-        st.subheader("🏘️ 地區？")
+        st.subheader("🏘️ 地區")
         available_districts = []
         if selected_cities:
             for city in selected_cities:
@@ -170,11 +170,11 @@ elif selected == "要吃什麼":
 
     c3, c4 = st.columns(2)
     with c3:
-        st.subheader("💰 預算？")
+        st.subheader("💰 預算")
         price_options = [1, 2, 3]
         selected_prices = st.multiselect("價格", options=price_options, default=price_options, format_func=get_price_label)
     with c4:
-        st.subheader("🍜 類型？")
+        st.subheader("🍜 類型")
         all_types = sorted(list(set(str(r['類型']) for r in all_restaurants))) if all_restaurants else []
         selected_types = st.multiselect("類型", options=all_types, default=all_types)
 
@@ -196,7 +196,7 @@ elif selected == "要吃什麼":
             st.balloons()
             st.header(f"✨ 今天就吃：{final_choice['餐廳名稱']} ✨")
             p_label = get_price_label(final_choice['價位'])
-            is_eaten = "😋 吃過囉" if final_choice.get('是否吃過') == "是" else "🆕 還沒吃過"
+            is_eaten = "😋 吃過囉" if final_choice.get('是否吃過') == "是" else " ❌ 還沒吃過"
             st.success(f"📍 {final_choice.get('縣市', '')}{final_choice.get('地區', '')} | {final_choice['類型']} | {p_label} | {is_eaten}")
         else:
             st.warning("🥺 沒找到餐廳... 試著放寬條件？")
@@ -220,7 +220,7 @@ elif selected == "要吃什麼":
             
             with col_a:
                 # 👇 [修改] 這裡改成「選單 + 手動輸入」
-                type_options = ["🆕 自行輸入"] + existing_types
+                type_options = ["✨自行輸入✨"] + existing_types
                 selected_type = st.selectbox("類型", options=type_options)
                 new_manual_type = st.text_input("輸入新類型 (若上方選擇'自行輸入'才需填寫)")
             
@@ -235,7 +235,7 @@ elif selected == "要吃什麼":
 
             if st.form_submit_button("加入名單"):
                 # 判斷要用哪個類型
-                if selected_type == "🆕 自行輸入":
+                if selected_type == "✨自行輸入✨":
                     final_type = new_manual_type
                 else:
                     final_type = selected_type
@@ -283,7 +283,7 @@ elif selected == "要吃什麼":
                         st.success(f"已更新：{target_name} -> 吃過")
                         st.cache_data.clear()
                 with c_edit2:
-                    if st.button("標記為 🆕 沒吃過"):
+                    if st.button("標記為 ❌ 沒吃過"):
                         res_sheet.update_cell(target_row, 6, "否")
                         st.success(f"已更新：{target_name} -> 沒吃過")
                         st.cache_data.clear()
